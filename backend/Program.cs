@@ -3,6 +3,9 @@ using NhyiraHaven.Models;
 using NhyiraHaven.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,10 +18,40 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Identity
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders();
+// Identity with custom password policies
+var identityOptions = PasswordPolicy.GetIdentityOptions();
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+{
+    options.Password = identityOptions.Password;
+    options.User = identityOptions.User;
+    options.SignIn = identityOptions.SignIn;
+    options.Lockout = identityOptions.Lockout;
+})
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
+
+// JWT Configuration
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "NhyiraHaven",
+        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "NhyiraHaven",
+        IssuerSigningKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "NhyiraHaven2026SecretKeyForDevelopmentOnly!"))
+    };
+});
+
+builder.Services.AddAuthorization();
 
 // Seeder (created inline when needed)
 // builder.Services.AddScoped<DataSeeder>();
@@ -45,6 +78,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseCors("AllowFrontend");
 app.UseAuthorization();
 app.MapControllers();
@@ -70,6 +105,14 @@ app.MapPost("/api/seed", async (ApplicationDbContext context, IWebHostEnvironmen
 
     return Results.Ok(new { message = "Data seeded successfully" });
 });
+
+// Seed roles and admin accounts
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    await DbInitializer.SeedRolesAndAdminAsync(services);
+    Console.WriteLine("✅ Roles and test accounts seeded");
+}
 
 // Run seed command if passed as argument
 if (args.Length > 0 && args[0] == "seed")

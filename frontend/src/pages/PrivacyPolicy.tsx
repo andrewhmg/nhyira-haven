@@ -246,10 +246,10 @@ function PrivacyPolicy() {
 
           <div className="d-flex justify-content-between">
             <Link to="/" className="btn btn-outline-secondary">
-              ← Back to Home
+              &larr; Back to Home
             </Link>
             <Link to="/login" className="btn btn-primary">
-              Continue to Login →
+              Continue to Login &rarr;
             </Link>
           </div>
         </div>

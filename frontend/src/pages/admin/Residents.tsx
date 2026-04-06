@@ -1,0 +1,186 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { getResidents, getSafehouses, deleteResident } from '../../services/api';
+import type { Resident, Safehouse } from '../../types/api';
+import StatusBadge from '../../components/common/StatusBadge';
+import ConfirmModal from '../../components/common/ConfirmModal';
+import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+
+const PAGE_SIZE = 15;
+
+export default function Residents() {
+  const [residents, setResidents] = useState<Resident[]>([]);
+  const [safehouses, setSafehouses] = useState<Safehouse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filterSafehouse, setFilterSafehouse] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [page, setPage] = useState(1);
+  const [deleteTarget, setDeleteTarget] = useState<Resident | null>(null);
+
+  const loadData = async () => {
+    setLoading(true);
+    const params: Record<string, unknown> = {};
+    if (filterSafehouse) params.safehouseId = Number(filterSafehouse);
+    if (filterStatus) params.status = filterStatus;
+    if (filterCategory) params.category = filterCategory;
+    const [r, s] = await Promise.all([
+      getResidents(params as { safehouseId?: number; status?: string; category?: string }).catch(() => []),
+      safehouses.length ? Promise.resolve(safehouses) : getSafehouses().catch(() => []),
+    ]);
+    setResidents(r);
+    if (!safehouses.length) setSafehouses(s);
+    setLoading(false);
+    setPage(1);
+  };
+
+  useEffect(() => { loadData(); }, [filterSafehouse, filterStatus, filterCategory]);
+
+  const filtered = residents.filter((r) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      r.firstName.toLowerCase().includes(q) ||
+      r.lastName.toLowerCase().includes(q) ||
+      r.caseNumber.toLowerCase().includes(q)
+    );
+  });
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await deleteResident(deleteTarget.id);
+      setDeleteTarget(null);
+      loadData();
+    } catch {
+      alert('Failed to delete resident');
+    }
+  };
+
+  const statuses = [...new Set(residents.map((r) => r.status))].sort();
+  const categories = [...new Set(residents.map((r) => r.caseCategory))].sort();
+
+  return (
+    <div>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 className="mb-1">Caseload Inventory</h2>
+          <p className="text-muted mb-0 small">{filtered.length} residents found</p>
+        </div>
+        <Link to="/admin/residents" className="btn btn-primary d-flex align-items-center gap-1">
+          <Plus size={16} /> Add Resident
+        </Link>
+      </div>
+
+      {/* Filters */}
+      <div className="filter-bar d-flex flex-wrap gap-3 align-items-center">
+        <div className="position-relative flex-grow-1" style={{ minWidth: 200 }}>
+          <Search size={16} className="position-absolute" style={{ left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--nh-text-muted)' }} />
+          <input
+            type="text"
+            className="form-control form-control-sm ps-4"
+            placeholder="Search by name or case #..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          />
+        </div>
+        <select className="form-select form-select-sm" style={{ width: 'auto' }} value={filterSafehouse} onChange={(e) => setFilterSafehouse(e.target.value)}>
+          <option value="">All Safehouses</option>
+          {safehouses.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <select className="form-select form-select-sm" style={{ width: 'auto' }} value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+          <option value="">All Statuses</option>
+          {statuses.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select className="form-select form-select-sm" style={{ width: 'auto' }} value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
+          <option value="">All Categories</option>
+          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border" style={{ color: 'var(--nh-primary)' }} />
+        </div>
+      ) : paginated.length === 0 ? (
+        <div className="text-center py-5 text-muted">No residents found matching your criteria.</div>
+      ) : (
+        <div className="data-table">
+          <div className="table-responsive">
+            <table className="table table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Case #</th>
+                  <th>Name</th>
+                  <th>Safehouse</th>
+                  <th>Status</th>
+                  <th>Category</th>
+                  <th>Intake Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginated.map((r) => (
+                  <tr key={r.id}>
+                    <td><code className="small">{r.caseNumber}</code></td>
+                    <td>
+                      <Link to={`/admin/residents/${r.id}`} className="text-decoration-none fw-semibold" style={{ color: 'var(--nh-primary)' }}>
+                        {r.firstName} {r.lastName}
+                      </Link>
+                    </td>
+                    <td className="small">{safehouses.find((s) => s.id === r.safehouseId)?.name || `#${r.safehouseId}`}</td>
+                    <td><StatusBadge status={r.status} size="sm" /></td>
+                    <td className="small">{r.caseCategory}</td>
+                    <td className="small">{new Date(r.intakeDate).toLocaleDateString()}</td>
+                    <td>
+                      <div className="d-flex gap-1">
+                        <Link to={`/admin/residents/${r.id}`} className="btn btn-sm btn-outline-secondary" style={{ fontSize: '0.75rem' }}>View</Link>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          style={{ fontSize: '0.75rem' }}
+                          onClick={() => setDeleteTarget(r)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="d-flex justify-content-between align-items-center mt-3">
+          <span className="text-muted small">Page {page} of {totalPages}</span>
+          <div className="d-flex gap-1">
+            <button className="btn btn-sm btn-outline-secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+              <ChevronLeft size={14} />
+            </button>
+            <button className="btn btn-sm btn-outline-secondary" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete Resident"
+          message={`Are you sure you want to delete ${deleteTarget.firstName} ${deleteTarget.lastName}? This action cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={handleDelete}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+    </div>
+  );
+}

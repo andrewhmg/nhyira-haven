@@ -1,0 +1,175 @@
+import { useEffect, useState } from 'react';
+import { getResidents } from '../../services/api';
+import type { Resident, HomeVisitation } from '../../types/api';
+import { Search, Plus, X, AlertTriangle } from 'lucide-react';
+import { format } from 'date-fns';
+
+interface VisitWithResident extends HomeVisitation {
+  residentName: string;
+}
+
+export default function HomeVisitations() {
+  const [visits, setVisits] = useState<VisitWithResident[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    getResidents()
+      .then((residents: Resident[]) => {
+        const all: VisitWithResident[] = [];
+        residents.forEach((r) => {
+          r.homeVisitations?.forEach((hv) => {
+            all.push({ ...hv, residentName: `${r.firstName} ${r.lastName}` });
+          });
+        });
+        all.sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime());
+        setVisits(all);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const filtered = visits.filter((v) => {
+    const matchSearch = !search || v.residentName.toLowerCase().includes(search.toLowerCase()) || v.visitorName?.toLowerCase().includes(search.toLowerCase());
+    const matchType = !filterType || v.visitType === filterType;
+    return matchSearch && matchType;
+  });
+
+  const types = [...new Set(visits.map((v) => v.visitType))].sort();
+  const formatDate = (d: string) => { try { return format(new Date(d), 'MMM d, yyyy'); } catch { return d; } };
+
+  return (
+    <div>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 className="mb-1">Home Visitations</h2>
+          <p className="text-muted mb-0 small">{filtered.length} visit records</p>
+        </div>
+        <button className="btn btn-primary d-flex align-items-center gap-1" onClick={() => setShowForm(!showForm)}>
+          {showForm ? <><X size={16} /> Close</> : <><Plus size={16} /> New Visit</>}
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="nh-card p-4 mb-4" style={{ borderLeft: '4px solid var(--nh-success)' }}>
+          <h5 className="fw-bold mb-3">Log Home Visit</h5>
+          <form onSubmit={(e) => { e.preventDefault(); setShowForm(false); }}>
+            <div className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label small fw-semibold">Resident</label>
+                <select className="form-select form-select-sm" required>
+                  <option value="">Select resident...</option>
+                </select>
+              </div>
+              <div className="col-md-3">
+                <label className="form-label small fw-semibold">Visit Date</label>
+                <input type="date" className="form-control form-control-sm" required />
+              </div>
+              <div className="col-md-3">
+                <label className="form-label small fw-semibold">Visit Type</label>
+                <select className="form-select form-select-sm" required>
+                  <option value="">Select type...</option>
+                  <option>Routine</option>
+                  <option>Follow-Up</option>
+                  <option>Emergency</option>
+                  <option>Pre-Reintegration</option>
+                  <option>Assessment</option>
+                </select>
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small fw-semibold">Visitor Name</label>
+                <input type="text" className="form-control form-control-sm" placeholder="Staff member name" />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small fw-semibold">Location</label>
+                <input type="text" className="form-control form-control-sm" placeholder="Visit location" required />
+              </div>
+              <div className="col-12">
+                <label className="form-label small fw-semibold">Summary</label>
+                <textarea className="form-control form-control-sm" rows={3} required placeholder="Describe the visit..." />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small fw-semibold">Family Interaction</label>
+                <textarea className="form-control form-control-sm" rows={2} placeholder="Notes on family interactions..." />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small fw-semibold">Recommendations</label>
+                <textarea className="form-control form-control-sm" rows={2} placeholder="Recommendations..." />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small fw-semibold">Safety Concerns</label>
+                <textarea className="form-control form-control-sm" rows={2} placeholder="Any safety concerns..." />
+              </div>
+              <div className="col-md-6 d-flex align-items-end">
+                <div className="form-check">
+                  <input type="checkbox" className="form-check-input" id="followUp" />
+                  <label className="form-check-label small" htmlFor="followUp">Follow-Up Needed</label>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 d-flex gap-2">
+              <button type="submit" className="btn btn-primary btn-sm">Save Visit</button>
+              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setShowForm(false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      <div className="filter-bar d-flex flex-wrap gap-3 align-items-center">
+        <div className="position-relative flex-grow-1" style={{ minWidth: 200 }}>
+          <Search size={16} className="position-absolute" style={{ left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--nh-text-muted)' }} />
+          <input
+            type="text"
+            className="form-control form-control-sm ps-4"
+            placeholder="Search by resident or visitor..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <select className="form-select form-select-sm" style={{ width: 'auto' }} value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+          <option value="">All Visit Types</option>
+          {types.map((t) => <option key={t} value={t}>{t}</option>)}
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-5"><div className="spinner-border" style={{ color: 'var(--nh-primary)' }} /></div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-5 text-muted">No home visits found.</div>
+      ) : (
+        <div className="d-flex flex-column gap-2 mt-1">
+          {filtered.slice(0, 50).map((v) => (
+            <div key={v.id} className="nh-card p-3">
+              <div className="d-flex justify-content-between align-items-start">
+                <div className="flex-grow-1">
+                  <div className="d-flex align-items-center gap-2 mb-1">
+                    <span className="fw-semibold small" style={{ color: 'var(--nh-primary)' }}>{v.residentName}</span>
+                    <span className="badge badge-teal" style={{ fontSize: '0.7rem' }}>{v.visitType}</span>
+                    {v.followUpNeeded && (
+                      <span className="badge badge-on-hold d-flex align-items-center gap-1" style={{ fontSize: '0.65rem' }}>
+                        <AlertTriangle size={8} /> Follow-Up
+                      </span>
+                    )}
+                  </div>
+                  <p className="small text-muted mb-1">{v.summary.slice(0, 200)}{v.summary.length > 200 ? '...' : ''}</p>
+                  <div className="d-flex gap-3" style={{ fontSize: '0.75rem' }}>
+                    {v.visitorName && <span className="text-muted">Visitor: {v.visitorName}</span>}
+                    <span className="text-muted">Location: {v.location}</span>
+                  </div>
+                  {v.safetyConcerns && (
+                    <div className="mt-1 small text-danger d-flex align-items-center gap-1">
+                      <AlertTriangle size={12} /> {v.safetyConcerns.slice(0, 100)}
+                    </div>
+                  )}
+                </div>
+                <span className="text-muted small flex-shrink-0 ms-3">{formatDate(v.visitDate)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

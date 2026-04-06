@@ -1,5 +1,6 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { CookieConsent } from './CookieConsent'
 
 function Layout() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -57,9 +58,15 @@ function Layout() {
       {/* Footer */}
       <footer className="bg-dark text-white py-3 mt-auto">
         <div className="container text-center">
-          <small>&copy; 2026 Nhyira Haven. All rights reserved.</small>
+          <small>
+            &copy; 2026 Nhyira Haven. All rights reserved.{' '}
+            <Link to="/privacy" className="text-white-50">Privacy Policy</Link>
+          </small>
         </div>
       </footer>
+
+      {/* Cookie Consent Banner */}
+      <CookieConsent />
     </div>
   )
 }

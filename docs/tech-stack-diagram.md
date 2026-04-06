@@ -4,40 +4,40 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              CLIENT LAYER                                    │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                     React + Vite + TypeScript                        │   │
-│  │  • SPA with React Router                                           │   │
-│  │  • Tailwind CSS for styling                                        │   │
-│  │  • Axios for API calls                                             │   │
-│  │  • Hosted on Azure Static Web Apps                                 │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
+│                              CLIENT LAYER                                   │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                     React + Vite + TypeScript                       │    │
+│  │  • SPA with React Router                                            │    │
+│  │  • Bootstrap 5 for styling                                          │    │
+│  │  • Axios for API calls                                              │    │
+│  │  • Hosted on Azure Static Web Apps                                  │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       │ HTTPS/TLS
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              API LAYER                                       │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                     .NET 10 Web API                                  │   │
-│  │  • RESTful endpoints                                                │   │
-│  │  • ASP.NET Identity (authentication)                                │   │
-│  │  • Role-based authorization (Admin, Staff, Donor)                   │   │
-│  │  • Entity Framework Core ORM                                        │   │
-│  │  • Hosted on Azure App Service                                      │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
+│                              API LAYER                                      │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                     .NET 10 Web API                                 │    │
+│  │  • RESTful endpoints                                                │    │
+│  │  • ASP.NET Identity (authentication)                                │    │
+│  │  • Role-based authorization (Admin, Staff, Donor)                   │    │
+│  │  • Entity Framework Core ORM                                        │    │
+│  │  • Hosted on Azure App Service                                      │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       │ Entity Framework Core
                                       ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                            DATABASE LAYER                                    │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                        Azure SQL Database                            │   │
-│  │  • 17+ tables (residents, donors, cases, etc.)                     │   │
-│  │  • Seeded with CSV data                                             │   │
-│  │  • Connection string in Azure Key Vault                             │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
+│                            DATABASE LAYER                                   │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                        Azure SQL Database                           │    │
+│  │  • 17+ tables (residents, donors, cases, etc.)                      │    │
+│  │  • Seeded with CSV data                                             │    │
+│  │  • Connection string in Azure Key Vault                             │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -49,7 +49,7 @@
 | Framework | React 18 | UI components |
 | Build Tool | Vite | Fast development + bundling |
 | Language | TypeScript | Type safety |
-| Styling | Tailwind CSS | Responsive design |
+| Styling | Bootstrap 5 | Responsive design |
 | Routing | React Router | SPA navigation |
 | HTTP Client | Axios | API communication |
 | Forms | React Hook Form | Form validation |

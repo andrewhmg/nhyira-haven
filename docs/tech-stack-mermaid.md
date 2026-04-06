@@ -43,7 +43,7 @@ graph TB
 │                                                             │
 │   FRONTEND (Azure Static Web Apps)                         │
 │   ┌─────────────────────────────────────────────────────┐  │
-│   │  React  •  Vite  •  TypeScript  •  Tailwind CSS    │  │
+│   │  React  •  Vite  •  TypeScript  •  Bootstrap 5      │  │
 │   └─────────────────────────────────────────────────────┘  │
 │                          │                                  │
 │                          │ HTTPS/TLS                        │

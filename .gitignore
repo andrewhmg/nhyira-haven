@@ -1,6 +1,9 @@
 # Database
 *.db
 
+# Build artifacts (EF Core tools)
+backend/bin/Debug/net10.0/BuildHost-*/
+
 # Backend
 backend/bin/
 backend/obj/

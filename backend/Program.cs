@@ -14,9 +14,26 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Entity Framework Core
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Entity Framework Core - Support both SQLite (dev) and PostgreSQL (production)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? builder.Configuration["DATABASE_URL"];
+
+var usePostgres = !string.IsNullOrEmpty(connectionString) && 
+    (connectionString.Contains("Host=") || connectionString.Contains("postgres") || connectionString.Contains("supabase"));
+
+if (usePostgres)
+{
+    // PostgreSQL (Supabase/Azure)
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseNpgsql(connectionString));
+}
+else
+{
+    // SQLite (Development)
+    var sqliteConnection = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=nhyira-haven.db";
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseSqlite(sqliteConnection));
+}
 
 // Identity with custom password policies
 var identityOptions = PasswordPolicy.GetIdentityOptions();

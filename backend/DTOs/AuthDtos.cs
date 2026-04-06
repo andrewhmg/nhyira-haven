@@ -17,7 +17,7 @@ public class RegisterDto
     public string Email { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Password is required")]
-    [StringLength(128, MinimumLength = 12, ErrorMessage = "Password must be between 12 and 128 characters")]
+    [StringLength(128, MinimumLength = 12, ErrorMessage = "Password must be at least 12 characters")]
     public string Password { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Confirm password is required")]
@@ -66,7 +66,7 @@ public class ChangePasswordDto
     public string CurrentPassword { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "New password is required")]
-    [StringLength(128, MinimumLength = 12, ErrorMessage = "Password must be between 12 and 128 characters")]
+    [StringLength(128, MinimumLength = 12, ErrorMessage = "Password must be at least 12 characters")]
     public string NewPassword { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Confirm password is required")]
@@ -91,7 +91,7 @@ public class ResetPasswordDto
     public string Token { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "New password is required")]
-    [StringLength(128, MinimumLength = 12, ErrorMessage = "Password must be between 12 and 128 characters")]
+    [StringLength(128, MinimumLength = 12, ErrorMessage = "Password must be at least 12 characters")]
     public string NewPassword { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Confirm password is required")]

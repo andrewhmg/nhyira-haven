@@ -41,15 +41,14 @@ public class AuthController : ControllerBase
     {
         try
         {
-            // Validate password policy
-            var passwordErrors = new List<string>();
-            if (!PasswordPolicy.ValidatePassword(model.Password, out passwordErrors))
+            // Validate password length
+            if (model.Password.Length < PasswordPolicy.MinimumLength)
             {
                 return BadRequest(new AuthResponseDto
                 {
                     Success = false,
-                    Message = "Password does not meet requirements.",
-                    Errors = passwordErrors
+                    Message = $"Password must be at least {PasswordPolicy.MinimumLength} characters.",
+                    Errors = new[] { $"Password must be at least {PasswordPolicy.MinimumLength} characters." }
                 });
             }
 
@@ -233,15 +232,14 @@ public class AuthController : ControllerBase
             });
         }
 
-        // Validate new password policy
-        var passwordErrors = new List<string>();
-        if (!PasswordPolicy.ValidatePassword(model.NewPassword, out passwordErrors))
+        // Validate new password length
+        if (model.NewPassword.Length < PasswordPolicy.MinimumLength)
         {
             return BadRequest(new AuthResponseDto
             {
                 Success = false,
-                Message = "New password does not meet requirements.",
-                Errors = passwordErrors
+                Message = $"Password must be at least {PasswordPolicy.MinimumLength} characters.",
+                Errors = new[] { $"Password must be at least {PasswordPolicy.MinimumLength} characters." }
             });
         }
 

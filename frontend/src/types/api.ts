@@ -1,5 +1,24 @@
 // API Types - Matching backend models
 
+// User/Auth
+export interface User {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  createdAt: string;
+  lastLogin?: string;
+}
+
+export interface AuthResponse {
+  success: boolean;
+  message: string;
+  token?: string;
+  user?: User;
+  errors?: string[];
+}
+
 // Safehouse
 export interface Safehouse {
   id: number;

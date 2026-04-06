@@ -1,6 +1,15 @@
-import { Outlet, Link } from 'react-router-dom'
+import { Outlet, Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../contexts/AuthContext'
 
 function Layout() {
+  const { user, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
+
   return (
     <div className="min-vh-100 d-flex flex-column">
       {/* Header */}
@@ -10,10 +19,31 @@ function Layout() {
             <Link to="/" className="text-white text-decoration-none fs-4 fw-bold">
               Nhyira Haven
             </Link>
-            <nav>
-              <Link to="/login" className="btn btn-outline-light btn-sm">
-                Login
-              </Link>
+            <nav className="d-flex align-items-center gap-3">
+              {isAuthenticated ? (
+                <>
+                  <span className="text-white-50">
+                    Welcome, {user?.firstName}{' '}
+                    <span className={`badge ${
+                      user?.role === 'Admin' ? 'bg-danger' :
+                      user?.role === 'Staff' ? 'bg-success' :
+                      'bg-info'
+                    }`}>
+                      {user?.role}
+                    </span>
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="btn btn-outline-light btn-sm"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <Link to="/login" className="btn btn-outline-light btn-sm">
+                  Login
+                </Link>
+              )}
             </nav>
           </div>
         </div>

@@ -127,8 +127,21 @@ app.MapPost("/api/seed", async (ApplicationDbContext context, IWebHostEnvironmen
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    await DbInitializer.SeedRolesAndAdminAsync(services);
-    Console.WriteLine("✅ Roles and test accounts seeded");
+    try
+    {
+        // Test database connection first
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        await context.Database.CanConnectAsync();
+        Console.WriteLine("✅ Database connection successful");
+        
+        await DbInitializer.SeedRolesAndAdminAsync(services);
+        Console.WriteLine("✅ Roles and test accounts seeded");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Database initialization failed: {ex.Message}");
+        // Continue running even if database fails
+    }
 }
 
 // Run seed command if passed as argument

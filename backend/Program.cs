@@ -184,9 +184,21 @@ using (var scope = app.Services.CreateScope())
         await DbInitializer.SeedRolesAndAdminAsync(services);
         Console.WriteLine("✅ Roles and test accounts seeded");
         
-        // Seed sample data for demo
-        var prodSeeder = new ProductionSeeder(context);
-        await prodSeeder.SeedSampleDataAsync();
+        // Seed full CSV data if available
+        var csvPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "data", "lighthouse_csv_v7");
+        if (Directory.Exists(csvPath))
+        {
+            Console.WriteLine("📊 Found CSV data - seeding full dataset...");
+            var seeder = new DataSeeder(context, csvPath);
+            await seeder.SeedAllAsync();
+        }
+        else
+        {
+            // Fallback to sample data
+            Console.WriteLine("⚠️ No CSV data found - seeding sample data...");
+            var prodSeeder = new ProductionSeeder(context);
+            await prodSeeder.SeedSampleDataAsync();
+        }
     }
     catch (Exception ex)
     {

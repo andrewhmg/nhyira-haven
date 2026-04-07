@@ -141,6 +141,21 @@ app.MapPost("/api/seed", async (ApplicationDbContext context, IWebHostEnvironmen
     return Results.Ok(new { message = "Data seeded successfully" });
 });
 
+// Seed sample data endpoint (available in production)
+app.MapPost("/api/seed-sample", async (ApplicationDbContext context) =>
+{
+    try
+    {
+        var prodSeeder = new ProductionSeeder(context);
+        await prodSeeder.SeedSampleDataAsync();
+        return Results.Ok(new { message = "Sample data seeded successfully" });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Failed to seed: {ex.Message}");
+    }
+});
+
 // Seed roles and admin accounts
 using (var scope = app.Services.CreateScope())
 {

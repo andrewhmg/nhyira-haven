@@ -10,10 +10,18 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
     {
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         
-        // Use PostgreSQL for Supabase production migrations
-        var connectionString = "Host=db.zuyyebiltbkzkooegbrs.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=adminpasswordteam12;SSL Mode=Prefer;Trust Server Certificate=true";
-        
-        optionsBuilder.UseNpgsql(connectionString);
+        // Use environment variable for connection string, fall back to SQLite for local dev
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+            ?? Environment.GetEnvironmentVariable("DATABASE_URL");
+
+        if (!string.IsNullOrEmpty(connectionString))
+        {
+            optionsBuilder.UseNpgsql(connectionString);
+        }
+        else
+        {
+            optionsBuilder.UseSqlite("Data Source=nhyira-haven.db");
+        }
         
         return new ApplicationDbContext(optionsBuilder.Options);
     }

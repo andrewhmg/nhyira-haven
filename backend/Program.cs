@@ -15,7 +15,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Entity Framework Core - Support both SQLite (dev) and PostgreSQL (production)
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration["DATABASE_URL"]
     ?? Environment.GetEnvironmentVariable("DATABASE_URL");
 
@@ -29,7 +29,7 @@ if (!string.IsNullOrEmpty(connectionString) && connectionString.StartsWith("post
     connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.Trim('/')};Username={userInfo[0]};Password={userInfo[1]}";
 }
 
-var usePostgres = !string.IsNullOrEmpty(connectionString) && 
+var usePostgres = !string.IsNullOrEmpty(connectionString) &&
     (connectionString.Contains("Host=") || connectionString.Contains("postgres") || connectionString.Contains("supabase"));
 
 Console.WriteLine($"Connection string detected: {(usePostgres ? "PostgreSQL" : "SQLite")}");
@@ -61,6 +61,21 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddDefaultTokenProviders();
 
 // JWT Configuration
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? Environment.GetEnvironmentVariable("Jwt__Key");
+
+if (string.IsNullOrEmpty(jwtKey))
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        jwtKey = "NhyiraHaven2026SecretKeyForDevelopmentOnly!";
+    }
+    else
+    {
+        throw new InvalidOperationException("JWT key must be configured in production via Jwt__Key environment variable.");
+    }
+}
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -76,27 +91,26 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "NhyiraHaven",
         ValidAudience = builder.Configuration["Jwt:Audience"] ?? "NhyiraHaven",
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? "NhyiraHaven2026SecretKeyForDevelopmentOnly!"))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
 });
 
 builder.Services.AddAuthorization();
 
-// Seeder (created inline when needed)
-// builder.Services.AddScoped<DataSeeder>();
+// CORS for frontend - configurable via environment variable
+var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Split(',')
+    ?? new[] {
+        "http://localhost:5173",
+        "https://nhyira-haven.azurewebsites.net",
+        "https://frontend-chi-woad-55.vercel.app",
+        "https://frontend.vercel.app"
+    };
 
-// CORS for frontend
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:5173", 
-                "https://nhyira-haven.azurewebsites.net",
-                "https://frontend-chi-woad-55.vercel.app",
-                "https://frontend.vercel.app"
-              )
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -112,10 +126,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-app.UseAuthentication();
-app.UseAuthorization();
 app.UseCors("AllowFrontend");
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
@@ -125,14 +137,33 @@ app.MapGet("/api/health", () => new { status = "healthy", timestamp = DateTime.U
 // Root endpoint
 app.MapGet("/", () => "Nhyira Haven API - Running");
 
+// Helper to find CSV data in multiple locations
+static string? FindCsvPath()
+{
+    var candidates = new[]
+    {
+        Path.Combine(Directory.GetCurrentDirectory(), "data", "lighthouse_csv_v7"),           // Docker (root Dockerfile copies here)
+        Path.Combine(Directory.GetCurrentDirectory(), "..", "data", "lighthouse_csv_v7"),      // Local dev from /backend
+        "/app/data/lighthouse_csv_v7",                                                         // Absolute Docker path
+        "/data/lighthouse_csv_v7"                                                              // Legacy Docker path
+    };
+
+    foreach (var path in candidates)
+    {
+        if (Directory.Exists(path))
+            return path;
+    }
+    return null;
+}
+
 // Seed data endpoint (development only)
 app.MapPost("/api/seed", async (ApplicationDbContext context, IWebHostEnvironment env) =>
 {
     if (!env.IsDevelopment())
         return Results.Forbid();
 
-    var csvPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "data", "lighthouse_csv_v7");
-    if (!Directory.Exists(csvPath))
+    var csvPath = FindCsvPath();
+    if (csvPath == null)
         return Results.NotFound("CSV data not found");
 
     var seeder = new DataSeeder(context, csvPath);
@@ -146,9 +177,8 @@ app.MapPost("/api/seed-sample", async (ApplicationDbContext context, IWebHostEnv
 {
     try
     {
-        // Try full CSV seeder first
-        var csvPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "data", "lighthouse_csv_v7");
-        if (Directory.Exists(csvPath))
+        var csvPath = FindCsvPath();
+        if (csvPath != null)
         {
             var seeder = new DataSeeder(context, csvPath);
             await seeder.SeedAllAsync();
@@ -156,7 +186,6 @@ app.MapPost("/api/seed-sample", async (ApplicationDbContext context, IWebHostEnv
         }
         else
         {
-            // Fallback to sample data
             var prodSeeder = new ProductionSeeder(context);
             await prodSeeder.SeedSampleDataAsync();
             return Results.Ok(new { message = "Sample data seeded successfully" });
@@ -175,36 +204,35 @@ using (var scope = app.Services.CreateScope())
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
-        
+
         // Apply migrations automatically
         Console.WriteLine("Applying database migrations...");
         context.Database.EnsureCreated();
-        Console.WriteLine("✅ Database created/migrated successfully");
-        
+        Console.WriteLine("Database created/migrated successfully");
+
         await DbInitializer.SeedRolesAndAdminAsync(services);
-        Console.WriteLine("✅ Roles and test accounts seeded");
-        
+        Console.WriteLine("Roles and test accounts seeded");
+
         // Seed full CSV data if available
-        var csvPath = Path.Combine(Directory.GetCurrentDirectory(), "data", "lighthouse_csv_v7");
-        Console.WriteLine($"Looking for CSV data at: {csvPath}");
-        Console.WriteLine($"Directory exists: {Directory.Exists(csvPath)}");
-        if (Directory.Exists(csvPath))
+        var csvPath = FindCsvPath();
+        Console.WriteLine($"Looking for CSV data...");
+        Console.WriteLine($"CSV path found: {csvPath ?? "none"}");
+        if (csvPath != null)
         {
-            Console.WriteLine("📊 Found CSV data - seeding full dataset...");
+            Console.WriteLine("Found CSV data - seeding full dataset...");
             var seeder = new DataSeeder(context, csvPath);
             await seeder.SeedAllAsync();
         }
         else
         {
-            // Fallback to sample data
-            Console.WriteLine("⚠️ No CSV data found - seeding sample data...");
+            Console.WriteLine("No CSV data found - seeding sample data...");
             var prodSeeder = new ProductionSeeder(context);
             await prodSeeder.SeedSampleDataAsync();
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"⚠️ Database initialization failed: {ex.Message}");
+        Console.WriteLine($"Database initialization failed: {ex.Message}");
         Console.WriteLine($"Stack trace: {ex.StackTrace}");
         // Continue running even if database fails
     }
@@ -215,18 +243,18 @@ if (args.Length > 0 && args[0] == "seed")
 {
     using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var csvPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "data", "lighthouse_csv_v7");
-    
-    if (Directory.Exists(csvPath))
+    var csvPath = FindCsvPath();
+
+    if (csvPath != null)
     {
         var seeder = new DataSeeder(context, csvPath);
         await seeder.SeedAllAsync();
     }
     else
     {
-        Console.WriteLine($"CSV data not found at {csvPath}");
+        Console.WriteLine("CSV data not found in any expected location");
     }
-    
+
     return;
 }
 

@@ -17,6 +17,8 @@ services:
         value: NhyiraHaven
       - key: Jwt__Audience
         value: NhyiraHaven
+      - key: ALLOWED_ORIGINS
+        value: http://localhost:5173,https://frontend-chi-woad-55.vercel.app,https://frontend.vercel.app
 
 databases:
   - name: nhyira-haven-db

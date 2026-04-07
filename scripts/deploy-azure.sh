@@ -27,7 +27,7 @@ az webapp create \
   --name $APP_NAME \
   --resource-group $RESOURCE_GROUP \
   --plan "nhyira-haven-plan" \
-  --runtime "DOTNETCORE:10.0"
+  --runtime "DOTNETCORE:9.0"
 
 # Set environment variables (you'll need to set these manually or via Key Vault)
 echo "⚙️ Setting environment variables..."

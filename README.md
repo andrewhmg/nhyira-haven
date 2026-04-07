@@ -18,7 +18,7 @@ Nhyira Haven is a web platform for a nonprofit organization supporting survivors
 |-------|------------|
 | **Frontend** | React 18 + Vite + TypeScript + Bootstrap 5 |
 | **Backend** | .NET 10 Web API + ASP.NET Identity |
-| **Database** | SQLite (dev) → Azure SQL (prod) |
+| **Database** | Supabase PostgreSQL (production) |
 | **ORM** | Entity Framework Core 10 |
 | **Auth** | ASP.NET Identity (Admin, Staff, Donor roles) |
 | **Deployment** | Azure App Service + Azure Static Web Apps |

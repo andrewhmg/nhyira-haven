@@ -33,7 +33,7 @@ public class SafehousesController : ControllerBase
     {
         var safehouse = await _context.Safehouses
             .Include(s => s.Residents)
-            .Include(s => s.PartnerAssignments)
+            .Include(s => s.PartnerAssignments!)
                 .ThenInclude(pa => pa.Partner)
             .Include(s => s.MonthlyMetrics)
             .FirstOrDefaultAsync(s => s.Id == id);

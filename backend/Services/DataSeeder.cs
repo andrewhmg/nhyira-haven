@@ -20,8 +20,19 @@ public class DataSeeder
     {
         Console.WriteLine("Starting data seeding...");
 
-        // Disable foreign key checks temporarily
-        await _context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;");
+        // Check if using PostgreSQL
+        var isPostgres = _context.Database.ProviderName?.Contains("Npgsql") == true;
+
+        // Disable foreign key checks temporarily (SQLite only)
+        if (isPostgres)
+        {
+            // PostgreSQL handles this differently - skip FK disable
+            Console.WriteLine("Using PostgreSQL - skipping FK disable");
+        }
+        else
+        {
+            await _context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;");
+        }
 
         await SeedSafehousesAsync();
         await SeedPartnersAsync();
@@ -41,8 +52,11 @@ public class DataSeeder
         await SeedSafehouseMonthlyMetricsAsync();
         await SeedPublicImpactSnapshotsAsync();
 
-        // Re-enable foreign key checks
-        await _context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
+        // Re-enable foreign key checks (SQLite only)
+        if (!isPostgres)
+        {
+            await _context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
+        }
 
         Console.WriteLine("Data seeding completed!");
     }

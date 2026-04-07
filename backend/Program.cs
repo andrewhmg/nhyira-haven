@@ -142,13 +142,25 @@ app.MapPost("/api/seed", async (ApplicationDbContext context, IWebHostEnvironmen
 });
 
 // Seed sample data endpoint (available in production)
-app.MapPost("/api/seed-sample", async (ApplicationDbContext context) =>
+app.MapPost("/api/seed-sample", async (ApplicationDbContext context, IWebHostEnvironment env) =>
 {
     try
     {
-        var prodSeeder = new ProductionSeeder(context);
-        await prodSeeder.SeedSampleDataAsync();
-        return Results.Ok(new { message = "Sample data seeded successfully" });
+        // Try full CSV seeder first
+        var csvPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "data", "lighthouse_csv_v7");
+        if (Directory.Exists(csvPath))
+        {
+            var seeder = new DataSeeder(context, csvPath);
+            await seeder.SeedAllAsync();
+            return Results.Ok(new { message = "Full CSV data seeded successfully" });
+        }
+        else
+        {
+            // Fallback to sample data
+            var prodSeeder = new ProductionSeeder(context);
+            await prodSeeder.SeedSampleDataAsync();
+            return Results.Ok(new { message = "Sample data seeded successfully" });
+        }
     }
     catch (Exception ex)
     {

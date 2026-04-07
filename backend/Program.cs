@@ -16,14 +16,27 @@ builder.Services.AddSwaggerGen();
 
 // Entity Framework Core - Support both SQLite (dev) and PostgreSQL (production)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? builder.Configuration["DATABASE_URL"];
+    ?? builder.Configuration["DATABASE_URL"]
+    ?? Environment.GetEnvironmentVariable("DATABASE_URL");
+
+// Convert Render's postgresql:// URL to Npgsql format if needed
+if (!string.IsNullOrEmpty(connectionString) && connectionString.StartsWith("postgresql://"))
+{
+    // Render provides: postgresql://user:pass@host:port/db
+    // Npgsql needs: Host=host;Port=port;Database=db;Username=user;Password=pass
+    var uri = new Uri(connectionString);
+    var userInfo = uri.UserInfo.Split(':');
+    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.Trim('/')};Username={userInfo[0]};Password={userInfo[1]}";
+}
 
 var usePostgres = !string.IsNullOrEmpty(connectionString) && 
     (connectionString.Contains("Host=") || connectionString.Contains("postgres") || connectionString.Contains("supabase"));
 
+Console.WriteLine($"Connection string detected: {(usePostgres ? "PostgreSQL" : "SQLite")}");
+
 if (usePostgres)
 {
-    // PostgreSQL (Supabase/Azure)
+    // PostgreSQL (Render/Supabase/Azure)
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
         options.UseNpgsql(connectionString));
 }
@@ -129,10 +142,12 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
-        // Test database connection first
         var context = services.GetRequiredService<ApplicationDbContext>();
-        await context.Database.CanConnectAsync();
-        Console.WriteLine("✅ Database connection successful");
+        
+        // Apply migrations automatically
+        Console.WriteLine("Applying database migrations...");
+        context.Database.EnsureCreated();
+        Console.WriteLine("✅ Database created/migrated successfully");
         
         await DbInitializer.SeedRolesAndAdminAsync(services);
         Console.WriteLine("✅ Roles and test accounts seeded");
@@ -140,6 +155,7 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"⚠️ Database initialization failed: {ex.Message}");
+        Console.WriteLine($"Stack trace: {ex.StackTrace}");
         // Continue running even if database fails
     }
 }

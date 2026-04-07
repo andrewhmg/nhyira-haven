@@ -8,9 +8,7 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: ConnectionStrings__DefaultConnection
-        fromDatabase:
-          name: nhyira-haven-db
-          property: connectionString
+        value: "Host=db.zuyyebiltbkzkooegbrs.supabase.co;Port=5432;Database=postgres;Username=postgres;Password=adminpasswordteam12;SSL Mode=Require;Trust Server Certificate=true"
       - key: Jwt__Key
         generateValue: true
       - key: Jwt__Issuer
@@ -19,7 +17,3 @@ services:
         value: NhyiraHaven
       - key: ALLOWED_ORIGINS
         value: http://localhost:5173,https://frontend-chi-woad-55.vercel.app,https://frontend.vercel.app
-
-databases:
-  - name: nhyira-haven-db
-    plan: free

@@ -3,10 +3,7 @@ services:
     name: nhyira-haven-api
     env: docker
     plan: free
-    dockerfilePath: ./backend/Dockerfile
-    buildFilter:
-      paths:
-        - backend/**
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production

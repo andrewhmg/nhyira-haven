@@ -185,7 +185,9 @@ using (var scope = app.Services.CreateScope())
         Console.WriteLine("✅ Roles and test accounts seeded");
         
         // Seed full CSV data if available
-        var csvPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "data", "lighthouse_csv_v7");
+        var csvPath = Path.Combine(Directory.GetCurrentDirectory(), "data", "lighthouse_csv_v7");
+        Console.WriteLine($"Looking for CSV data at: {csvPath}");
+        Console.WriteLine($"Directory exists: {Directory.Exists(csvPath)}");
         if (Directory.Exists(csvPath))
         {
             Console.WriteLine("📊 Found CSV data - seeding full dataset...");

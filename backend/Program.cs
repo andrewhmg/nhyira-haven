@@ -247,31 +247,6 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// One-time admin seed endpoint (protected)
-app.MapPost("/api/admin/seed-users", async (ApplicationDbContext context, IConfiguration config) =>
-{
-    try
-    {
-        var userManager = new UserManager<ApplicationUser>(
-            new UserStore<ApplicationUser>(context),
-            config,
-            new PasswordHasher<ApplicationUser>(),
-            Array.Empty<IUserValidator<ApplicationUser>>(),
-            Array.Empty<IPasswordValidator<ApplicationUser>>(),
-            new PasswordHasher<ApplicationUser>(),
-            Array.Empty<IUserValidator<ApplicationUser>>(),
-            Array.Empty<IPasswordValidator<ApplicationUser>>());
-        
-        // Just call DbInitializer
-        await DbInitializer.SeedRolesAndAdminAsync(app.Services);
-        return Results.Ok(new { message = "Users seeded successfully" });
-    }
-    catch (Exception ex)
-    {
-        return Results.Problem($"Failed to seed: {ex.Message}");
-    }
-}).RequireAuthorization();
-
 // Run seed command if passed as argument
 if (args.Length > 0 && args[0] == "seed")
 {

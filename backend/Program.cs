@@ -207,8 +207,8 @@ using (var scope = app.Services.CreateScope())
 
         // Apply migrations automatically
         Console.WriteLine("Applying database migrations...");
-        context.Database.EnsureCreated();
-        Console.WriteLine("Database created/migrated successfully");
+        context.Database.Migrate();
+        Console.WriteLine("Database migrated successfully");
 
         await DbInitializer.SeedRolesAndAdminAsync(services);
         Console.WriteLine("Roles and test accounts seeded");

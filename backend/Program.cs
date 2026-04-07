@@ -91,7 +91,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "https://nhyira-haven.azurewebsites.net")
+        policy.WithOrigins(
+                "http://localhost:5173", 
+                "https://nhyira-haven.azurewebsites.net",
+                "https://frontend-chi-woad-55.vercel.app",
+                "https://frontend.vercel.app"
+              )
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();

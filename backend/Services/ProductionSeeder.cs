@@ -36,12 +36,12 @@ public class ProductionSeeder
         {
             var residents = new List<Resident>
             {
-                new() { FirstName = "Amara", LastName = "O.", DateOfBirth = DateTime.UtcNow.AddYears(-16), Gender = "Female", AdmissionDate = DateTime.UtcNow.AddMonths(-6), SafehouseId = 1, IsActive = true, CaseSummary = "Rescued from trafficking situation. Making excellent progress in counseling and education." },
-                new() { FirstName = "Chioma", LastName = "N.", DateOfBirth = DateTime.UtcNow.AddYears(-14), Gender = "Female", AdmissionDate = DateTime.UtcNow.AddMonths(-8), SafehouseId = 1, IsActive = true, CaseSummary = "Survivor of abuse. Thriving in school and art therapy programs." },
-                new() { FirstName = "Fatima", LastName = "A.", DateOfBirth = DateTime.UtcNow.AddYears(-15), Gender = "Female", AdmissionDate = DateTime.UtcNow.AddMonths(-4), SafehouseId = 2, IsActive = true, CaseSummary = "Recently admitted. Beginning trauma-informed care and stabilization." },
-                new() { FirstName = "Grace", LastName = "E.", DateOfBirth = DateTime.UtcNow.AddYears(-17), Gender = "Female", AdmissionDate = DateTime.UtcNow.AddMonths(-10), SafehouseId = 2, IsActive = true, CaseSummary = "Long-term resident. Preparing for vocational training program." },
-                new() { FirstName = "Khadija", LastName = "M.", DateOfBirth = DateTime.UtcNow.AddYears(-13), Gender = "Female", AdmissionDate = DateTime.UtcNow.AddMonths(-2), SafehouseId = 3, IsActive = true, CaseSummary = "New arrival. Responding well to initial interventions." },
-                new() { FirstName = "Blessing", LastName = "O.", DateOfBirth = DateTime.UtcNow.AddYears(-16), Gender = "Female", AdmissionDate = DateTime.UtcNow.AddMonths(-5), SafehouseId = 3, IsActive = true, CaseSummary = "Showing remarkable resilience. Exceling in mathematics and science." }
+                new() { CaseNumber = "NH-2025-001", FirstName = "Amara", LastName = "O.", DateOfBirth = DateTime.UtcNow.AddYears(-16), Gender = "Female", SafehouseId = 1, IntakeDate = DateTime.UtcNow.AddMonths(-6), CaseCategory = "Trafficking", ReferralSource = "Law Enforcement", Status = "Active", IsActive = true },
+                new() { CaseNumber = "NH-2025-002", FirstName = "Chioma", LastName = "N.", DateOfBirth = DateTime.UtcNow.AddYears(-14), Gender = "Female", SafehouseId = 1, IntakeDate = DateTime.UtcNow.AddMonths(-8), CaseCategory = "Abuse", ReferralSource = "Social Services", Status = "Active", IsActive = true },
+                new() { CaseNumber = "NH-2025-003", FirstName = "Fatima", LastName = "A.", DateOfBirth = DateTime.UtcNow.AddYears(-15), Gender = "Female", SafehouseId = 2, IntakeDate = DateTime.UtcNow.AddMonths(-4), CaseCategory = "Trafficking", ReferralSource = "NGO Partner", Status = "Active", IsActive = true },
+                new() { CaseNumber = "NH-2025-004", FirstName = "Grace", LastName = "E.", DateOfBirth = DateTime.UtcNow.AddYears(-17), Gender = "Female", SafehouseId = 2, IntakeDate = DateTime.UtcNow.AddMonths(-10), CaseCategory = "Abuse", ReferralSource = "Family", Status = "Active", IsActive = true },
+                new() { CaseNumber = "NH-2025-005", FirstName = "Khadija", LastName = "M.", DateOfBirth = DateTime.UtcNow.AddYears(-13), Gender = "Female", SafehouseId = 3, IntakeDate = DateTime.UtcNow.AddMonths(-2), CaseCategory = "Trafficking", ReferralSource = "Hotline", Status = "Active", IsActive = true },
+                new() { CaseNumber = "NH-2025-006", FirstName = "Blessing", LastName = "O.", DateOfBirth = DateTime.UtcNow.AddYears(-16), Gender = "Female", SafehouseId = 3, IntakeDate = DateTime.UtcNow.AddMonths(-5), CaseCategory = "Abuse", ReferralSource = "School", Status = "Active", IsActive = true }
             };
             await _context.Residents.AddRangeAsync(residents);
             await _context.SaveChangesAsync();
@@ -53,12 +53,12 @@ public class ProductionSeeder
         {
             var supporters = new List<Supporter>
             {
-                new() { FirstName = "John", LastName = "Smith", Email = "john.smith@email.com", SupporterType = "Individual", TotalDonated = 5000, IsRecurring = true, MonthlyAmount = 100 },
-                new() { FirstName = "Sarah", LastName = "Johnson", Email = "sarah.j@email.com", SupporterType = "Individual", TotalDonated = 2500, IsRecurring = true, MonthlyAmount = 50 },
-                new() { FirstName = "Michael", LastName = "Chen", Email = "m.chen@email.com", SupporterType = "Individual", TotalDonated = 10000, IsRecurring = false, MonthlyAmount = 0 },
-                new() { FirstName = "Emma", LastName = "Williams", Email = "emma.w@email.com", SupporterType = "Individual", TotalDonated = 1200, IsRecurring = true, MonthlyAmount = 25 },
-                new() { Name = "TechCorp Foundation", Email = "giving@techcorp.com", SupporterType = "Corporate", TotalDonated = 50000, IsRecurring = false, MonthlyAmount = 0 },
-                new() { Name = "Global Aid Partners", Email = "contact@globalaid.org", SupporterType = "Organization", TotalDonated = 75000, IsRecurring = true, MonthlyAmount = 5000 }
+                new() { FirstName = "John", LastName = "Smith", Email = "john.smith@email.com", SupporterType = "Individual", TotalDonated = 5000, JoinedDate = DateTime.UtcNow.AddYears(-2), IsActive = true },
+                new() { FirstName = "Sarah", LastName = "Johnson", Email = "sarah.j@email.com", SupporterType = "Individual", TotalDonated = 2500, JoinedDate = DateTime.UtcNow.AddYears(-1), IsActive = true },
+                new() { FirstName = "Michael", LastName = "Chen", Email = "m.chen@email.com", SupporterType = "Individual", TotalDonated = 10000, JoinedDate = DateTime.UtcNow.AddMonths(-6), IsActive = true },
+                new() { FirstName = "Emma", LastName = "Williams", Email = "emma.w@email.com", SupporterType = "Individual", TotalDonated = 1200, JoinedDate = DateTime.UtcNow.AddMonths(-3), IsActive = true },
+                new() { FirstName = "Corporate", LastName = "Donor", Email = "giving@techcorp.com", SupporterType = "Corporate", TotalDonated = 50000, JoinedDate = DateTime.UtcNow.AddYears(-1), IsActive = true },
+                new() { FirstName = "Global", LastName = "Aid", Email = "contact@globalaid.org", SupporterType = "Foundation", TotalDonated = 75000, JoinedDate = DateTime.UtcNow.AddMonths(-8), IsActive = true }
             };
             await _context.Supporters.AddRangeAsync(supporters);
             await _context.SaveChangesAsync();
@@ -88,11 +88,17 @@ public class ProductionSeeder
             var snapshots = new PublicImpactSnapshot
             {
                 Id = 1,
+                Title = "Q1 2026 Impact Report",
                 SnapshotDate = DateTime.UtcNow,
-                TotalGirlsServed = 247,
-                ActiveSafehouses = 3,
-                TotalSupporters = 156,
-                TotalRaised = 425000
+                TotalResidentsServed = 247,
+                ActiveResidents = 55,
+                SuccessfulReintegrations = 89,
+                TotalDonationsReceived = 425000,
+                TotalDonors = 156,
+                ActivePartners = 23,
+                SafehouseCount = 3,
+                IsPublished = true,
+                PublishedDate = DateTime.UtcNow
             };
             await _context.PublicImpactSnapshots.AddAsync(snapshots);
             await _context.SaveChangesAsync();

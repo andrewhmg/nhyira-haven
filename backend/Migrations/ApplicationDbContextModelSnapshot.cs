@@ -268,7 +268,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasIndex("SupporterId");
 
-                    b.ToTable("Donations");
+                    b.ToTable("Donations", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.DonationAllocation", b =>
@@ -297,7 +297,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasIndex("DonationId");
 
-                    b.ToTable("DonationAllocations");
+                    b.ToTable("DonationAllocations", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.EducationRecord", b =>
@@ -344,7 +344,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasIndex("ResidentId");
 
-                    b.ToTable("EducationRecords");
+                    b.ToTable("EducationRecords", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.HealthWellbeingRecord", b =>
@@ -396,7 +396,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasIndex("ResidentId");
 
-                    b.ToTable("HealthWellbeingRecords");
+                    b.ToTable("HealthWellbeingRecords", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.HomeVisitation", b =>
@@ -442,7 +442,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasIndex("ResidentId");
 
-                    b.ToTable("HomeVisitations");
+                    b.ToTable("HomeVisitations", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.InKindDonationItem", b =>
@@ -482,7 +482,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasIndex("DonationId");
 
-                    b.ToTable("InKindDonationItems");
+                    b.ToTable("InKindDonationItems", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.IncidentReport", b =>
@@ -534,7 +534,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasIndex("ResidentId");
 
-                    b.ToTable("IncidentReports");
+                    b.ToTable("IncidentReports", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.InterventionPlan", b =>
@@ -580,7 +580,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasIndex("ResidentId");
 
-                    b.ToTable("InterventionPlans");
+                    b.ToTable("InterventionPlans", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.Partner", b =>
@@ -617,7 +617,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Partners");
+                    b.ToTable("Partners", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.PartnerAssignment", b =>
@@ -647,7 +647,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasIndex("SafehouseId");
 
-                    b.ToTable("PartnerAssignments");
+                    b.ToTable("PartnerAssignments", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.ProcessRecording", b =>
@@ -692,7 +692,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasIndex("ResidentId");
 
-                    b.ToTable("ProcessRecordings");
+                    b.ToTable("ProcessRecordings", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.PublicImpactSnapshot", b =>
@@ -743,7 +743,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PublicImpactSnapshots");
+                    b.ToTable("PublicImpactSnapshots", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.Resident", b =>
@@ -808,7 +808,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasIndex("SafehouseId");
 
-                    b.ToTable("Residents");
+                    b.ToTable("Residents", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.Safehouse", b =>
@@ -845,7 +845,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Safehouses");
+                    b.ToTable("Safehouses", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.SafehouseMonthlyMetric", b =>
@@ -901,7 +901,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasIndex("SafehouseId");
 
-                    b.ToTable("SafehouseMonthlyMetrics");
+                    b.ToTable("SafehouseMonthlyMetrics", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.SocialMediaPost", b =>
@@ -960,7 +960,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasIndex("PostDate");
 
-                    b.ToTable("SocialMediaPosts");
+                    b.ToTable("SocialMediaPosts", (string)null);
                 });
 
             modelBuilder.Entity("NhyiraHaven.Models.Supporter", b =>
@@ -1011,7 +1011,7 @@ namespace NhyiraHaven.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Supporters");
+                    b.ToTable("Supporters", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

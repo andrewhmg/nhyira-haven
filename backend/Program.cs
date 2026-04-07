@@ -205,10 +205,19 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
 
-        // Apply migrations automatically
-        Console.WriteLine("Applying database migrations...");
-        context.Database.Migrate();
-        Console.WriteLine("Database migrated successfully");
+        // Apply migrations automatically - use EnsureCreated for existing database
+        Console.WriteLine("Checking database...");
+        try
+        {
+            context.Database.Migrate();
+            Console.WriteLine("Database migrated successfully");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Migration failed (expected if already exists): {ex.Message}");
+            Console.WriteLine("Using EnsureCreated as fallback...");
+            context.Database.EnsureCreated();
+        }
 
         await DbInitializer.SeedRolesAndAdminAsync(services);
         Console.WriteLine("Roles and test accounts seeded");

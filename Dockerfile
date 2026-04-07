@@ -1,5 +1,5 @@
 # Build stage
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY backend/NhyiraHaven.csproj ./backend/
 WORKDIR /src/backend
@@ -8,7 +8,7 @@ COPY backend/ ./
 RUN dotnet publish "NhyiraHaven.csproj" -c Release -o /app/publish
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 COPY data/lighthouse_csv_v7/ /app/data/lighthouse_csv_v7/

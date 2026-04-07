@@ -8,10 +8,16 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: ConnectionStrings__DefaultConnection
-        sync: false
+        fromDatabase:
+          name: nhyira-haven-db
+          property: connectionString
       - key: Jwt__Key
         generateValue: true
       - key: Jwt__Issuer
         value: NhyiraHaven
       - key: Jwt__Audience
         value: NhyiraHaven
+
+databases:
+  - name: nhyira-haven-db
+    plan: free

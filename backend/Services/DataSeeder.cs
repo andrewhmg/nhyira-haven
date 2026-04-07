@@ -21,103 +21,28 @@ public class DataSeeder
     {
         Console.WriteLine("Starting data seeding...");
 
-        // Check if using PostgreSQL
-        var isPostgres = _context.Database.ProviderName?.Contains("Npgsql") == true;
-
-        List<string>? droppedFks = null;
-        if (isPostgres)
-        {
-            // PostgreSQL: Drop FK constraints temporarily
-            Console.WriteLine("Using PostgreSQL - dropping FK constraints temporarily");
-            droppedFks = await DropForeignKeyConstraintsPostgres();
-        }
-
-        try
-        {
-            await SeedSafehousesAsync();
-            await SeedPartnersAsync();
-            await SeedPartnerAssignmentsAsync();
-            await SeedSupportersAsync();
-            await SeedDonationsAsync();
-            await SeedInKindDonationItemsAsync();
-            await SeedDonationAllocationsAsync();
-            await SeedResidentsAsync();
-            await SeedProcessRecordingsAsync();
-            await SeedHomeVisitationsAsync();
-            await SeedEducationRecordsAsync();
-            await SeedHealthWellbeingRecordsAsync();
-            await SeedInterventionPlansAsync();
-            await SeedIncidentReportsAsync();
-            await SeedSocialMediaPostsAsync();
-            await SeedSafehouseMonthlyMetricsAsync();
-            await SeedPublicImpactSnapshotsAsync();
-        }
-        finally
-        {
-            // Recreate foreign key constraints
-            if (isPostgres && droppedFks != null)
-            {
-                await CreateForeignKeyConstraintsPostgres(droppedFks);
-                Console.WriteLine("PostgreSQL FK constraints recreated");
-            }
-        }
+        // Seed tables in dependency order (parent tables first, then children)
+        // This avoids FK constraint violations without needing to drop constraints
+        
+        await SeedSafehousesAsync();
+        await SeedPartnersAsync();
+        await SeedPartnerAssignmentsAsync();
+        await SeedSupportersAsync();
+        await SeedDonationsAsync();
+        await SeedInKindDonationItemsAsync();
+        await SeedDonationAllocationsAsync();
+        await SeedResidentsAsync();
+        await SeedProcessRecordingsAsync();
+        await SeedHomeVisitationsAsync();
+        await SeedEducationRecordsAsync();
+        await SeedHealthWellbeingRecordsAsync();
+        await SeedInterventionPlansAsync();
+        await SeedIncidentReportsAsync();
+        await SeedSocialMediaPostsAsync();
+        await SeedSafehouseMonthlyMetricsAsync();
+        await SeedPublicImpactSnapshotsAsync();
 
         Console.WriteLine("Data seeding completed!");
-    }
-
-    private async Task<List<string>> DropForeignKeyConstraintsPostgres()
-    {
-        var droppedFks = new List<string>();
-        var dropCommands = new List<string>();
-        
-        // Query all FK constraints in public schema
-        var sql = @"
-            SELECT tc.constraint_name, 
-                   'ALTER TABLE ""' || tc.table_schema || '"".""' || tc.table_name || '"" DROP CONSTRAINT ""' || tc.constraint_name || '"";' as drop_sql
-            FROM information_schema.table_constraints tc
-            WHERE tc.constraint_type = 'FOREIGN KEY'
-            AND tc.table_schema = 'public'";
-        
-        var connection = _context.Database.GetDbConnection();
-        await connection.OpenAsync();
-        
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText = sql;
-        
-        using var reader = await cmd.ExecuteReaderAsync();
-        while (await reader.ReadAsync())
-        {
-            dropCommands.Add(reader.GetString(1));
-            droppedFks.Add(reader.GetString(0));
-        }
-        
-        await reader.CloseAsync();
-        
-        // Now execute all drop commands
-        foreach (var dropSql in dropCommands)
-        {
-            await _context.Database.ExecuteSqlRawAsync(dropSql);
-        }
-        
-        Console.WriteLine("Dropped {0} FK constraints", droppedFks.Count);
-        return droppedFks;
-    }
-
-    private async Task CreateForeignKeyConstraintsPostgres(List<string> droppedFks)
-    {
-        // Recreate FK constraints by running EnsureCreated which applies the model
-        // This will recreate all constraints defined in the DbContext
-        try
-        {
-            await _context.Database.EnsureCreatedAsync();
-            Console.WriteLine("Recreated {0} FK constraints via EnsureCreated", droppedFks.Count);
-        }
-        catch (Exception ex)
-        {
-            // If EnsureCreated fails (tables exist), we need to recreate constraints manually
-            // For now, log the issue - constraints exist in migrations for next clean deploy
-            Console.WriteLine("Note: FK constraints exist in migrations. Dropped: {0}. Error: {1}", droppedFks.Count, ex.Message);
-        }
     }
 
     private async Task SeedSafehousesAsync()

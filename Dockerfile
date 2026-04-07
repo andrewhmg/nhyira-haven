@@ -2,10 +2,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY backend/NhyiraHaven.csproj ./backend/
-COPY backend/*.csproj ./
-RUN dotnet restore "backend/NhyiraHaven.csproj"
+WORKDIR /src/backend
+RUN dotnet restore "NhyiraHaven.csproj"
 COPY backend/ ./
-RUN dotnet publish "backend/NhyiraHaven.csproj" -c Release -o /app/publish
+RUN dotnet publish "NhyiraHaven.csproj" -c Release -o /app/publish
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS final

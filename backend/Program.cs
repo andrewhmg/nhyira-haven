@@ -156,6 +156,10 @@ using (var scope = app.Services.CreateScope())
         
         await DbInitializer.SeedRolesAndAdminAsync(services);
         Console.WriteLine("✅ Roles and test accounts seeded");
+        
+        // Seed sample data for demo
+        var prodSeeder = new ProductionSeeder(context);
+        await prodSeeder.SeedSampleDataAsync();
     }
     catch (Exception ex)
     {

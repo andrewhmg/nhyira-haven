@@ -10,7 +10,15 @@ using System.Text;
 // Required for SQLite-to-PostgreSQL DateTime compatibility
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
-var builder = WebApplication.CreateBuilder(args);
+try
+{
+    Console.WriteLine($"Starting NhyiraHaven API at {DateTime.UtcNow:O}");
+    Console.WriteLine($"Environment: {Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}");
+    Console.WriteLine($"Working directory: {Directory.GetCurrentDirectory()}");
+
+    var builder = WebApplication.CreateBuilder(args);
+
+    Console.WriteLine("Builder created successfully");
 
 // Add services to the container.
 builder.Services.AddControllers()
@@ -326,3 +334,16 @@ if (args.Length > 0 && args[0] == "seed")
 }
 
 app.Run();
+    Console.WriteLine("Application started successfully");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"FATAL ERROR: {ex.GetType().Name}");
+    Console.WriteLine($"Message: {ex.Message}");
+    Console.WriteLine($"Stack trace:\n{ex.StackTrace}");
+    if (ex.InnerException != null)
+    {
+        Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+    }
+    throw;
+}

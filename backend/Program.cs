@@ -285,22 +285,10 @@ using (var scope = app.Services.CreateScope())
         await DbInitializer.SeedRolesAndAdminAsync(services);
         Console.WriteLine("Roles and test accounts seeded");
 
-        // Seed full CSV data if available
-        var csvPath = FindCsvPath();
-        Console.WriteLine($"Looking for CSV data...");
-        Console.WriteLine($"CSV path found: {csvPath ?? "none"}");
-        if (csvPath != null)
-        {
-            Console.WriteLine("Found CSV data - seeding full dataset...");
-            var seeder = new DataSeeder(context, csvPath);
-            await seeder.SeedAllAsync();
-        }
-        else
-        {
-            Console.WriteLine("No CSV data found - seeding sample data...");
-            var prodSeeder = new ProductionSeeder(context);
-            await prodSeeder.SeedSampleDataAsync();
-        }
+        // NOTE: CSV data seeding disabled for deployment - use /api/seed-data endpoint instead
+        Console.WriteLine("CSV seeding skipped on startup - use /api/seed-data endpoint to seed data");
+        // var csvPath = FindCsvPath();
+        // if (csvPath != null) await seeder.SeedAllAsync();
     }
     catch (Exception ex)
     {

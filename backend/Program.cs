@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
+// Required for SQLite-to-PostgreSQL DateTime compatibility
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -23,14 +26,45 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? builder.Configuration["DATABASE_URL"]
     ?? Environment.GetEnvironmentVariable("DATABASE_URL");
 
-// Convert Render's postgresql:// URL to Npgsql format if needed
-if (!string.IsNullOrEmpty(connectionString) && connectionString.StartsWith("postgresql://"))
+// Convert postgresql:// URL to Npgsql format if needed (e.g., from Render, Neon, Supabase)
+if (!string.IsNullOrEmpty(connectionString) && (connectionString.StartsWith("postgresql://") || connectionString.StartsWith("postgres://")))
 {
-    // Render provides: postgresql://user:pass@host:port/db
-    // Npgsql needs: Host=host;Port=port;Database=db;Username=user;Password=pass
     var uri = new Uri(connectionString);
     var userInfo = uri.UserInfo.Split(':');
-    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.Trim('/')};Username={userInfo[0]};Password={userInfo[1]}";
+    var password = userInfo.Length > 1 ? userInfo[1] : "";
+    var port = uri.Port > 0 ? uri.Port : 5432;
+    var database = uri.AbsolutePath.Trim('/');
+    
+    var npgsqlStr = $"Host={uri.Host};Port={port};Database={database};Username={userInfo[0]};Password={password};";
+    
+    // Neon & Azure require SSL. Extract from query or force it.
+    if (!string.IsNullOrEmpty(uri.Query))
+    {
+        var query = uri.Query.TrimStart('?');
+        var pairs = query.Split('&');
+        foreach (var pair in pairs)
+        {
+            var kv = pair.Split('=');
+            if (kv.Length == 2)
+            {
+                if (kv[0].ToLower() == "sslmode" && kv[1].ToLower() == "require") 
+                    npgsqlStr += "Ssl Mode=Require;Trust Server Certificate=true;";
+                else if (kv[0].ToLower() == "options") 
+                    npgsqlStr += $"Options={Uri.UnescapeDataString(kv[1])};";
+            }
+        }
+    }
+    
+    // If we're using Neon or Azure and it wasn't specified in the query string, we should probably add SSL
+    if (uri.Host.Contains("neon.tech") || uri.Host.Contains("database.windows.net") || uri.Host.Contains("postgres.database.azure.com"))
+    {
+        if (!npgsqlStr.Contains("Ssl Mode"))
+        {
+            npgsqlStr += "Ssl Mode=Require;Trust Server Certificate=true;";
+        }
+    }
+
+    connectionString = npgsqlStr;
 }
 
 var usePostgres = !string.IsNullOrEmpty(connectionString) &&
@@ -68,7 +102,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 var jwtKey = builder.Configuration["Jwt:Key"]
     ?? Environment.GetEnvironmentVariable("Jwt__Key");
 
-if (string.IsNullOrEmpty(jwtKey))
+if (string.IsNullOrEmpty(jwtKey) || (!builder.Environment.IsDevelopment() && jwtKey == "NhyiraHaven2026SecretKeyForDevelopmentOnly!"))
 {
     if (builder.Environment.IsDevelopment())
     {
@@ -76,7 +110,7 @@ if (string.IsNullOrEmpty(jwtKey))
     }
     else
     {
-        throw new InvalidOperationException("JWT key must be configured in production via Jwt__Key environment variable.");
+        throw new InvalidOperationException("JWT key must be configured in production via Jwt__Key environment variable. IMPORTANT: The development key cannot be used in production.");
     }
 }
 
@@ -107,7 +141,8 @@ var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Spli
         "http://localhost:5173",
         "https://nhyira-haven.azurewebsites.net",
         "https://frontend-chi-woad-55.vercel.app",
-        "https://frontend.vercel.app"
+        "https://frontend.vercel.app",
+        "https://zealous-hill-057c4580f.1.azurestaticapps.net"
     };
 
 builder.Services.AddCors(options =>

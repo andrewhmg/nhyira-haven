@@ -260,42 +260,49 @@ app.MapPost("/api/seed-sample", async (ApplicationDbContext context, IWebHostEnv
     }
 });
 
-// Seed roles and admin accounts
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<ApplicationDbContext>();
+// Seed roles and admin accounts (skip on Azure to avoid startup timeout)
+var skipStartupDbInit = builder.Configuration.GetValue<bool>("SKIP_STARTUP_DB_INIT") 
+    || Environment.GetEnvironmentVariable("SKIP_STARTUP_DB_INIT") == "true"
+    || !builder.Environment.IsDevelopment();
 
-        // Apply migrations automatically - use EnsureCreated for existing database
-        Console.WriteLine("Checking database...");
+if (!skipStartupDbInit)
+{
+    using (var scope = app.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
         try
         {
-            context.Database.Migrate();
-            Console.WriteLine("Database migrated successfully");
+            var context = services.GetRequiredService<ApplicationDbContext>();
+
+            // Apply migrations automatically - use EnsureCreated for existing database
+            Console.WriteLine("Checking database...");
+            try
+            {
+                context.Database.Migrate();
+                Console.WriteLine("Database migrated successfully");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Migration failed (expected if already exists): {ex.Message}");
+                Console.WriteLine("Using EnsureCreated as fallback...");
+                context.Database.EnsureCreated();
+            }
+
+            await DbInitializer.SeedRolesAndAdminAsync(services);
+            Console.WriteLine("Roles and test accounts seeded");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Migration failed (expected if already exists): {ex.Message}");
-            Console.WriteLine("Using EnsureCreated as fallback...");
-            context.Database.EnsureCreated();
+            Console.WriteLine($"Database initialization failed: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            // Continue running even if database fails
         }
-
-        await DbInitializer.SeedRolesAndAdminAsync(services);
-        Console.WriteLine("Roles and test accounts seeded");
-
-        // NOTE: CSV data seeding disabled for deployment - use /api/seed-data endpoint instead
-        Console.WriteLine("CSV seeding skipped on startup - use /api/seed-data endpoint to seed data");
-        // var csvPath = FindCsvPath();
-        // if (csvPath != null) await seeder.SeedAllAsync();
     }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Database initialization failed: {ex.Message}");
-        Console.WriteLine($"Stack trace: {ex.StackTrace}");
-        // Continue running even if database fails
-    }
+}
+else
+{
+    Console.WriteLine("Skipping startup database initialization (SKIP_STARTUP_DB_INIT=true)");
+    Console.WriteLine("Use /api/seed-data endpoint to initialize database manually");
 }
 
 // Run seed command if passed as argument

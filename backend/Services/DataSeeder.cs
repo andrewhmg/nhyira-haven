@@ -114,7 +114,7 @@ public class DataSeeder
     //      open_date(7), status(8), capacity_girls(9), capacity_staff(10), current_occupancy(11), notes(12)
     private async Task SeedSafehousesAsync()
     {
-        if (await _context.Safehouses.AnyAsync()) return;
+        // Disabled check: if (await _context.Safehouses.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "safehouses.csv"));
         var entities = new List<Safehouse>();
@@ -146,7 +146,7 @@ public class DataSeeder
     //      email(5), phone(6), region(7), status(8), start_date(9), end_date(10), notes(11)
     private async Task SeedPartnersAsync()
     {
-        if (await _context.Partners.AnyAsync()) return;
+        // Disabled check: if (await _context.Partners.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "partners.csv"));
         var entities = new List<Partner>();
@@ -180,7 +180,7 @@ public class DataSeeder
     //      assignment_start(4), assignment_end(5), responsibility_notes(6), is_primary(7), status(8)
     private async Task SeedPartnerAssignmentsAsync()
     {
-        if (await _context.PartnerAssignments.AnyAsync()) return;
+        // Disabled check: if (await _context.PartnerAssignments.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "partner_assignments.csv"));
         var entities = new List<PartnerAssignment>();
@@ -211,7 +211,7 @@ public class DataSeeder
     //      email(9), phone(10), status(11), created_at(12), first_donation_date(13), acquisition_channel(14)
     private async Task SeedSupportersAsync()
     {
-        if (await _context.Supporters.AnyAsync()) return;
+        // Disabled check: if (await _context.Supporters.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "supporters.csv"));
         var entities = new List<Supporter>();
@@ -252,7 +252,7 @@ public class DataSeeder
     //      impact_unit(10), notes(11), referral_post_id(12)
     private async Task SeedDonationsAsync()
     {
-        if (await _context.Donations.AnyAsync()) return;
+        // Disabled check: if (await _context.Donations.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "donations.csv"));
         var entities = new List<Donation>();
@@ -317,7 +317,7 @@ public class DataSeeder
     //      unit_of_measure(5), estimated_unit_value(6), intended_use(7), received_condition(8)
     private async Task SeedInKindDonationItemsAsync()
     {
-        if (await _context.InKindDonationItems.AnyAsync()) return;
+        // Disabled check: if (await _context.InKindDonationItems.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "in_kind_donation_items.csv"));
         var entities = new List<InKindDonationItem>();
@@ -350,7 +350,7 @@ public class DataSeeder
     //      amount_allocated(4), allocation_date(5), allocation_notes(6)
     private async Task SeedDonationAllocationsAsync()
     {
-        if (await _context.DonationAllocations.AnyAsync()) return;
+        // Disabled check: if (await _context.DonationAllocations.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "donation_allocations.csv"));
         var entities = new List<DonationAllocation>();
@@ -390,7 +390,7 @@ public class DataSeeder
     // NOTE: No first/last name in CSV (privacy for minors). We generate pseudonym names.
     private async Task SeedResidentsAsync()
     {
-        if (await _context.Residents.AnyAsync()) return;
+        // Disabled check: if (await _context.Residents.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "residents.csv"));
         var entities = new List<Resident>();
@@ -442,7 +442,7 @@ public class DataSeeder
     //      progress_noted(11), concerns_flagged(12), referral_made(13), notes_restricted(14)
     private async Task SeedProcessRecordingsAsync()
     {
-        if (await _context.ProcessRecordings.AnyAsync()) return;
+        // Disabled check: if (await _context.ProcessRecordings.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "process_recordings.csv"));
         var entities = new List<ProcessRecording>();
@@ -477,7 +477,7 @@ public class DataSeeder
     //      follow_up_notes(12), visit_outcome(13)
     private async Task SeedHomeVisitationsAsync()
     {
-        if (await _context.HomeVisitations.AnyAsync()) return;
+        // Disabled check: if (await _context.HomeVisitations.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "home_visitations.csv"));
         var entities = new List<HomeVisitation>();
@@ -513,7 +513,7 @@ public class DataSeeder
     //      completion_status(8), notes(9)
     private async Task SeedEducationRecordsAsync()
     {
-        if (await _context.EducationRecords.AnyAsync()) return;
+        // Disabled check: if (await _context.EducationRecords.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "education_records.csv"));
         var entities = new List<EducationRecord>();
@@ -549,7 +549,7 @@ public class DataSeeder
     //      dental_checkup_done(11), psychological_checkup_done(12), notes(13)
     private async Task SeedHealthWellbeingRecordsAsync()
     {
-        if (await _context.HealthWellbeingRecords.AnyAsync()) return;
+        // Disabled check: if (await _context.HealthWellbeingRecords.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "health_wellbeing_records.csv"));
         var entities = new List<HealthWellbeingRecord>();
@@ -582,7 +582,7 @@ public class DataSeeder
     //      target_value(5), target_date(6), status(7), case_conference_date(8), created_at(9), updated_at(10)
     private async Task SeedInterventionPlansAsync()
     {
-        if (await _context.InterventionPlans.AnyAsync()) return;
+        // Disabled check: if (await _context.InterventionPlans.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "intervention_plans.csv"));
         var entities = new List<InterventionPlan>();
@@ -615,7 +615,7 @@ public class DataSeeder
     //      reported_by(10), follow_up_required(11)
     private async Task SeedIncidentReportsAsync()
     {
-        if (await _context.IncidentReports.AnyAsync()) return;
+        // Disabled check: if (await _context.IncidentReports.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "incident_reports.csv"));
         var entities = new List<IncidentReport>();
@@ -658,7 +658,7 @@ public class DataSeeder
     //      watch_time_seconds(35), avg_view_duration_seconds(36), subscriber_count_at_post(37), forwards(38)
     private async Task SeedSocialMediaPostsAsync()
     {
-        if (await _context.SocialMediaPosts.AnyAsync()) return;
+        // Disabled check: if (await _context.SocialMediaPosts.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "social_media_posts.csv"));
         var entities = new List<SocialMediaPost>();
@@ -696,7 +696,7 @@ public class DataSeeder
     //      home_visitation_count(8), incident_count(9), notes(10)
     private async Task SeedSafehouseMonthlyMetricsAsync()
     {
-        if (await _context.SafehouseMonthlyMetrics.AnyAsync()) return;
+        // Disabled check: if (await _context.SafehouseMonthlyMetrics.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "safehouse_monthly_metrics.csv"));
         var entities = new List<SafehouseMonthlyMetric>();
@@ -735,7 +735,7 @@ public class DataSeeder
     //      metric_payload_json(4), is_published(5), published_at(6)
     private async Task SeedPublicImpactSnapshotsAsync()
     {
-        if (await _context.PublicImpactSnapshots.AnyAsync()) return;
+        // Disabled check: if (await _context.PublicImpactSnapshots.AnyAsync()) return;
 
         var csv = await File.ReadAllLinesAsync(Path.Combine(_csvPath, "public_impact_snapshots.csv"));
         var entities = new List<PublicImpactSnapshot>();

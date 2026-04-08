@@ -347,3 +347,20 @@ catch (Exception ex)
     }
     throw;
 }
+
+// Debug endpoint - remove after testing
+app.MapGet("/api/debug/csv-path", () => {
+    var candidates = new[]
+    {
+        Path.Combine(Directory.GetCurrentDirectory(), "data", "lighthouse_csv_v7"),
+        Path.Combine(Directory.GetCurrentDirectory(), "..", "data", "lighthouse_csv_v7"),
+        "/app/data/lighthouse_csv_v7",
+        "/data/lighthouse_csv_v7"
+    };
+    foreach (var path in candidates)
+    {
+        if (Directory.Exists(path))
+            return Results.Ok(new { foundPath = path, files = Directory.GetFiles(path) });
+    }
+    return Results.NotFound(new { message = "CSV path not found", candidates });
+});

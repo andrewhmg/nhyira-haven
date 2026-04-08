@@ -1,15 +1,22 @@
 import { useEffect, useState } from 'react';
-import { getDashboardMetrics, getDonationStats, getSafehouses, getResidents } from '../../services/api';
-import type { DashboardMetrics, Safehouse, Resident } from '../../types/api';
+import { getDashboardMetrics, getDonationStats, getSafehouses, getResidents, getSupporters } from '../../services/api';
+import type { DashboardMetrics, Safehouse, Resident, Supporter } from '../../types/api';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell, Legend, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
 } from 'recharts';
+import MLInsightPanel, { MLMetric } from '../../components/ml/MLInsightPanel';
+import {
+  buildDonorFeatures, buildResidentFeatures,
+  predictChurnRisk, predictAllocationROI, predictPostConversion, predictEarlyWarning,
+  type ChurnRiskResult, type AllocationROIResult, type PostConversionResult,
+} from '../../services/mlApi';
+import { Brain } from 'lucide-react';
 
 const COLORS = ['#B85C38', '#1B6B6D', '#E8A838', '#2D8659', '#8B5CF6', '#C0392B', '#6c757d'];
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-type Tab = 'donations' | 'residents' | 'safehouses' | 'overview';
+type Tab = 'donations' | 'residents' | 'safehouses' | 'overview' | 'ml-insights';
 
 export default function Reports() {
   const [tab, setTab] = useState<Tab>('overview');
@@ -18,6 +25,12 @@ export default function Reports() {
   const [safehouses, setSafehouses] = useState<Safehouse[]>([]);
   const [residents, setResidents] = useState<Resident[]>([]);
   const [loading, setLoading] = useState(true);
+  // ML state
+  const [mlLoading, setMlLoading] = useState(true);
+  const [churnSummary, setChurnSummary] = useState<{ high: number; medium: number; low: number }>({ high: 0, medium: 0, low: 0 });
+  const [riskSummary, setRiskSummary] = useState<{ red: number; yellow: number; green: number }>({ red: 0, yellow: 0, green: 0 });
+  const [roiResults, setRoiResults] = useState<AllocationROIResult[]>([]);
+  const [postConversions, setPostConversions] = useState<Array<{ type: string; platform: string; probability: number; value: number }>>([]);
 
   useEffect(() => {
     Promise.all([
@@ -25,12 +38,90 @@ export default function Reports() {
       getDonationStats().catch(() => null),
       getSafehouses().catch(() => []),
       getResidents().catch(() => []),
-    ]).then(([m, ds, sh, r]) => {
+      getSupporters().catch(() => []),
+    ]).then(([m, ds, sh, r, supporters]) => {
       setMetrics(m);
       setDonationStats(ds);
       setSafehouses(sh);
       setResidents(r);
       setLoading(false);
+
+      // ML batch analysis (non-blocking)
+      const runMLAnalysis = async () => {
+        // Donor churn summary
+        const churnCounts = { high: 0, medium: 0, low: 0 };
+        const churnBatch = (supporters as Supporter[]).slice(0, 50).map(async (s) => {
+          try {
+            const features = buildDonorFeatures(s);
+            const result = await predictChurnRisk(features);
+            if (result.risk_tier === 'High') churnCounts.high++;
+            else if (result.risk_tier === 'Medium') churnCounts.medium++;
+            else churnCounts.low++;
+          } catch { /* skip */ }
+        });
+        await Promise.allSettled(churnBatch);
+        setChurnSummary({ ...churnCounts });
+
+        // Resident risk summary
+        const riskCounts = { red: 0, yellow: 0, green: 0 };
+        const activeResidents = (r as Resident[]).filter((res) => res.status === 'Active').slice(0, 50);
+        const riskBatch = activeResidents.map(async (res) => {
+          try {
+            const features = buildResidentFeatures(res);
+            const result = await predictEarlyWarning(features);
+            if (result.risk_level === 'Red') riskCounts.red++;
+            else if (result.risk_level === 'Yellow') riskCounts.yellow++;
+            else riskCounts.green++;
+          } catch { /* skip */ }
+        });
+        await Promise.allSettled(riskBatch);
+        setRiskSummary({ ...riskCounts });
+
+        // Allocation ROI predictions
+        const roiTargets: Array<'education' | 'health' | 'incidents'> = ['education', 'health', 'incidents'];
+        const roiPredictions: AllocationROIResult[] = [];
+        for (const target of roiTargets) {
+          try {
+            const result = await predictAllocationROI({
+              total_funding: 10000,
+              staff_count: 5,
+              resident_count: 20,
+              funding_per_resident: 500,
+            }, target);
+            roiPredictions.push(result);
+          } catch { /* skip */ }
+        }
+        setRoiResults(roiPredictions);
+
+        // Social media conversion analysis
+        const postTypes = ['FundraisingAppeal', 'ImpactStory', 'VolunteerSpotlight', 'EventPromotion', 'EducationalContent'];
+        const platforms = ['Instagram', 'Facebook', 'Twitter'];
+        const conversions: Array<{ type: string; platform: string; probability: number; value: number }> = [];
+        for (const pType of postTypes) {
+          for (const platform of platforms) {
+            try {
+              const features: Record<string, number> = {
+                [`platform_${platform}`]: 1,
+                [`post_type_${pType}`]: 1,
+                likes: 50,
+                shares: 10,
+                comments: 5,
+                reach: 500,
+              };
+              const result = await predictPostConversion(features);
+              conversions.push({
+                type: pType.replace(/([A-Z])/g, ' $1').trim(),
+                platform,
+                probability: result.conversion_probability,
+                value: result.estimated_donation_value_php ?? 0,
+              });
+            } catch { /* skip */ }
+          }
+        }
+        setPostConversions(conversions);
+        setMlLoading(false);
+      };
+      runMLAnalysis();
     });
   }, []);
 
@@ -63,6 +154,7 @@ export default function Reports() {
     { key: 'donations', label: 'Donation Trends' },
     { key: 'residents', label: 'Resident Outcomes' },
     { key: 'safehouses', label: 'Safehouse Comparison' },
+    { key: 'ml-insights', label: 'ML Insights' },
   ];
 
   return (
@@ -309,6 +401,154 @@ export default function Reports() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {tab === 'ml-insights' && (
+        <div className="row g-4">
+          {/* Donor Churn Portfolio */}
+          <div className="col-md-6">
+            <MLInsightPanel title="Donor Churn Portfolio" loading={mlLoading}>
+              <div className="row g-3 mb-3">
+                <div className="col-4">
+                  <MLMetric label="High Risk" value={churnSummary.high} color="#C0392B" sublabel="donors" />
+                </div>
+                <div className="col-4">
+                  <MLMetric label="Medium Risk" value={churnSummary.medium} color="#E8A838" sublabel="donors" />
+                </div>
+                <div className="col-4">
+                  <MLMetric label="Low Risk" value={churnSummary.low} color="#2D8659" sublabel="donors" />
+                </div>
+              </div>
+              {(churnSummary.high + churnSummary.medium + churnSummary.low) > 0 && (
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'High Risk', value: churnSummary.high, fill: '#C0392B' },
+                        { name: 'Medium Risk', value: churnSummary.medium, fill: '#E8A838' },
+                        { name: 'Low Risk', value: churnSummary.low, fill: '#2D8659' },
+                      ].filter((d) => d.value > 0)}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={70}
+                      innerRadius={35}
+                    >
+                      {[
+                        { fill: '#C0392B' },
+                        { fill: '#E8A838' },
+                        { fill: '#2D8659' },
+                      ].map((entry, i) => (
+                        <Cell key={i} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend wrapperStyle={{ fontSize: '0.7rem' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+            </MLInsightPanel>
+          </div>
+
+          {/* Resident Risk Distribution */}
+          <div className="col-md-6">
+            <MLInsightPanel title="Resident Risk Distribution" loading={mlLoading}>
+              <div className="row g-3 mb-3">
+                <div className="col-4">
+                  <MLMetric label="Red (High)" value={riskSummary.red} color="#C0392B" sublabel="residents" />
+                </div>
+                <div className="col-4">
+                  <MLMetric label="Yellow (Medium)" value={riskSummary.yellow} color="#E8A838" sublabel="residents" />
+                </div>
+                <div className="col-4">
+                  <MLMetric label="Green (Low)" value={riskSummary.green} color="#2D8659" sublabel="residents" />
+                </div>
+              </div>
+              {(riskSummary.red + riskSummary.yellow + riskSummary.green) > 0 && (
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={[
+                    { name: 'Red', count: riskSummary.red, fill: '#C0392B' },
+                    { name: 'Yellow', count: riskSummary.yellow, fill: '#E8A838' },
+                    { name: 'Green', count: riskSummary.green, fill: '#2D8659' },
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                      {[{ fill: '#C0392B' }, { fill: '#E8A838' }, { fill: '#2D8659' }].map((entry, i) => (
+                        <Cell key={i} fill={entry.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </MLInsightPanel>
+          </div>
+
+          {/* Allocation ROI Comparison */}
+          {roiResults.length > 0 && (
+            <div className="col-md-6">
+              <MLInsightPanel title="Allocation ROI Predictions" loading={mlLoading}>
+                <p className="small text-muted mb-3">Predicted outcome improvement from $10,000 allocation to each program area</p>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={roiResults.map((r) => ({
+                    name: r.target_metric.charAt(0).toUpperCase() + r.target_metric.slice(1),
+                    outcome: Number(r.predicted_outcome.toFixed(1)),
+                  }))}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="outcome" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </MLInsightPanel>
+            </div>
+          )}
+
+          {/* Social Media Conversion */}
+          {postConversions.length > 0 && (
+            <div className="col-md-6">
+              <MLInsightPanel title="Social Media Conversion Predictions" loading={mlLoading}>
+                <p className="small text-muted mb-3">Predicted donation conversion probability by post type and platform</p>
+                <div className="table-responsive">
+                  <table className="table table-sm table-hover mb-0">
+                    <thead>
+                      <tr>
+                        <th style={{ fontSize: '0.75rem' }}>Post Type</th>
+                        <th style={{ fontSize: '0.75rem' }}>Platform</th>
+                        <th style={{ fontSize: '0.75rem' }}>Conversion %</th>
+                        <th style={{ fontSize: '0.75rem' }}>Est. Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {postConversions
+                        .sort((a, b) => b.probability - a.probability)
+                        .slice(0, 10)
+                        .map((pc, i) => (
+                          <tr key={i}>
+                            <td className="small">{pc.type}</td>
+                            <td className="small">{pc.platform}</td>
+                            <td>
+                              <div className="d-flex align-items-center gap-2">
+                                <div className="progress flex-grow-1" style={{ height: 6 }}>
+                                  <div className="progress-bar" style={{ width: `${pc.probability * 100}%`, backgroundColor: pc.probability > 0.5 ? '#2D8659' : '#E8A838' }} />
+                                </div>
+                                <span className="small">{(pc.probability * 100).toFixed(0)}%</span>
+                              </div>
+                            </td>
+                            <td className="small fw-semibold">{pc.value > 0 ? `$${Math.round(pc.value).toLocaleString()}` : '—'}</td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </MLInsightPanel>
+            </div>
+          )}
         </div>
       )}
     </div>

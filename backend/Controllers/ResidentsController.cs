@@ -42,6 +42,8 @@ public class ResidentsController : ControllerBase
 
         return await query
             .Include(r => r.Safehouse)
+            .Include(r => r.ProcessRecordings)
+            .Include(r => r.HomeVisitations)
             .OrderByDescending(r => r.IntakeDate)
             .ToListAsync();
     }

@@ -6,12 +6,18 @@ import StatusBadge from '../../components/common/StatusBadge';
 import { ArrowLeft, AlertTriangle, Mail, Phone, Globe, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import MLInsightPanel, { MLMetric, MLFactorBar } from '../../components/ml/MLInsightPanel';
+import MLInsightBadge, { churnLevelColor } from '../../components/ml/MLInsightBadge';
+import { getDonorMLInsights, type ChurnRiskResult, type DonorTierResult, type DonorLTVResult } from '../../services/mlApi';
 
 export default function DonorDetail() {
   const { id } = useParams();
   const [supporter, setSupporter] = useState<Supporter | null>(null);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mlInsights, setMlInsights] = useState<{ churn: ChurnRiskResult | null; tier: DonorTierResult | null; ltv: DonorLTVResult | null } | null>(null);
+  const [mlLoading, setMlLoading] = useState(true);
+  const [mlError, setMlError] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -23,6 +29,14 @@ export default function DonorDetail() {
       setSupporter(s);
       setDonations(d);
       setLoading(false);
+      if (s) {
+        const hasRecurring = d.some((don: Donation) => don.isRecurring);
+        getDonorMLInsights({ ...s, isRecurring: hasRecurring })
+          .then((insights) => { setMlInsights(insights); setMlLoading(false); })
+          .catch(() => { setMlError(true); setMlLoading(false); });
+      } else {
+        setMlLoading(false);
+      }
     });
   }, [id]);
 
@@ -103,6 +117,71 @@ export default function DonorDetail() {
           </div>
         </div>
       </div>
+
+      {/* ML Insights Panel */}
+      <MLInsightPanel title="Donor Intelligence" loading={mlLoading} error={mlError}>
+        {mlInsights && (
+          <>
+            <div className="row g-3 mb-3">
+              {mlInsights.churn && (
+                <div className="col-md-4">
+                  <MLMetric
+                    label="Churn Risk"
+                    value={mlInsights.churn.risk_tier}
+                    sublabel={`${(mlInsights.churn.churn_probability * 100).toFixed(0)}% probability`}
+                    color={mlInsights.churn.risk_tier === 'High' ? '#C0392B' : mlInsights.churn.risk_tier === 'Medium' ? '#E8A838' : '#2D8659'}
+                  />
+                </div>
+              )}
+              {mlInsights.tier && (
+                <div className="col-md-4">
+                  <MLMetric
+                    label="Donor Tier"
+                    value={mlInsights.tier.tier}
+                    sublabel="Predicted value segment"
+                    color="#8B5CF6"
+                  />
+                </div>
+              )}
+              {mlInsights.ltv && (
+                <div className="col-md-4">
+                  <MLMetric
+                    label="Predicted Lifetime Value"
+                    value={`$${Math.round(mlInsights.ltv.predicted_lifetime_value_php).toLocaleString()}`}
+                    sublabel={mlInsights.ltv.value_segment}
+                    color="#1B6B6D"
+                  />
+                </div>
+              )}
+            </div>
+            <div className="row g-3">
+              {mlInsights.churn && mlInsights.churn.top_factors.length > 0 && (
+                <div className="col-md-6">
+                  <MLFactorBar factors={mlInsights.churn.top_factors} />
+                </div>
+              )}
+              {mlInsights.tier && mlInsights.tier.top_factors.length > 0 && (
+                <div className="col-md-6">
+                  <div className="mt-2">
+                    <div className="text-muted small fw-semibold mb-2">Tier Probabilities</div>
+                    {Object.entries(mlInsights.tier.probabilities).map(([tier, prob]) => (
+                      <div key={tier} className="d-flex align-items-center gap-2 mb-1">
+                        <span className="small" style={{ width: 80, fontSize: '0.72rem' }}>{tier}</span>
+                        <div className="flex-grow-1">
+                          <div className="progress" style={{ height: 6 }}>
+                            <div className="progress-bar" style={{ width: `${prob * 100}%`, backgroundColor: '#8B5CF6' }} />
+                          </div>
+                        </div>
+                        <span style={{ fontSize: '0.65rem', minWidth: 30 }} className="text-muted">{(prob * 100).toFixed(0)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </MLInsightPanel>
 
       {/* Donation trend chart */}
       {chartData.length > 0 && (

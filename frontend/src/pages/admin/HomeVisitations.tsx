@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { getResidents } from '../../services/api';
 import type { Resident, HomeVisitation } from '../../types/api';
+import MLInsightBadge from '../../components/ml/MLInsightBadge';
+import { predictFamilyCooperation, type FamilyCooperationResult } from '../../services/mlApi';
 import { Search, Plus, X, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -14,6 +16,7 @@ export default function HomeVisitations() {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [mlCooperation, setMlCooperation] = useState<Record<number, FamilyCooperationResult>>({});
 
   useEffect(() => {
     getResidents()
@@ -27,6 +30,22 @@ export default function HomeVisitations() {
         all.sort((a, b) => new Date(b.visitDate).getTime() - new Date(a.visitDate).getTime());
         setVisits(all);
         setLoading(false);
+
+        // Fire ML predictions for visits (non-blocking)
+        const predictions: Record<number, FamilyCooperationResult> = {};
+        const batch = all.slice(0, 30).map(async (visit) => {
+          try {
+            const features: Record<string, number> = {
+              [`visit_type_${visit.visitType.replace(/\s/g, '')}`]: 1,
+              has_safety_concerns: visit.safetyConcerns ? 1 : 0,
+              follow_up_needed: visit.followUpNeeded ? 1 : 0,
+              visit_count: all.filter((v) => v.residentId === visit.residentId).length,
+            };
+            const result = await predictFamilyCooperation(features, 1);
+            predictions[visit.id] = result;
+          } catch { /* ML unavailable */ }
+        });
+        Promise.allSettled(batch).then(() => setMlCooperation({ ...predictions }));
       })
       .catch(() => setLoading(false));
   }, []);
@@ -151,6 +170,13 @@ export default function HomeVisitations() {
                       <span className="badge badge-on-hold d-flex align-items-center gap-1" style={{ fontSize: '0.65rem' }}>
                         <AlertTriangle size={8} /> Follow-Up
                       </span>
+                    )}
+                    {mlCooperation[v.id] && (
+                      <MLInsightBadge
+                        label={mlCooperation[v.id].prediction}
+                        level={mlCooperation[v.id].cooperation_probability && mlCooperation[v.id].cooperation_probability! > 0.5 ? 'success' : 'warning'}
+                        probability={mlCooperation[v.id].cooperation_probability}
+                      />
                     )}
                   </div>
                   <p className="small text-muted mb-1">{v.summary.slice(0, 200)}{v.summary.length > 200 ? '...' : ''}</p>

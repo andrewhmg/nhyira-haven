@@ -4,7 +4,9 @@ import { getSupporters, getAtRiskSupporters, getDonationStats } from '../../serv
 import type { Supporter } from '../../types/api';
 import StatusBadge from '../../components/common/StatusBadge';
 import KPICard from '../../components/common/KPICard';
-import { Search, AlertTriangle, DollarSign, Users, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import MLInsightBadge, { churnLevelColor } from '../../components/ml/MLInsightBadge';
+import { buildDonorFeatures, predictChurnRisk, predictDonorTier, type ChurnRiskResult, type DonorTierResult } from '../../services/mlApi';
+import { Search, AlertTriangle, DollarSign, Users, RefreshCw, ChevronLeft, ChevronRight, Brain } from 'lucide-react';
 
 const PAGE_SIZE = 15;
 
@@ -16,6 +18,7 @@ export default function Donors() {
   const [showAtRisk, setShowAtRisk] = useState(false);
   const [page, setPage] = useState(1);
   const [stats, setStats] = useState<{ totalAmount: number; recurringDonations: number; averageDonation: number; totalDonations: number } | null>(null);
+  const [mlPredictions, setMlPredictions] = useState<Record<number, { churn?: ChurnRiskResult; tier?: DonorTierResult }>>({});
 
   const loadData = async () => {
     setLoading(true);
@@ -27,6 +30,21 @@ export default function Donors() {
     setStats(st);
     setLoading(false);
     setPage(1);
+
+    // Fire ML predictions for all supporters in batch (non-blocking)
+    const predictions: Record<number, { churn?: ChurnRiskResult; tier?: DonorTierResult }> = {};
+    const batch = s.slice(0, 50).map(async (sup: Supporter) => {
+      const features = buildDonorFeatures(sup);
+      const [churn, tier] = await Promise.allSettled([
+        predictChurnRisk(features),
+        predictDonorTier(features),
+      ]);
+      predictions[sup.id] = {
+        churn: churn.status === 'fulfilled' ? churn.value : undefined,
+        tier: tier.status === 'fulfilled' ? tier.value : undefined,
+      };
+    });
+    Promise.allSettled(batch).then(() => setMlPredictions({ ...predictions }));
   };
 
   useEffect(() => { loadData(); }, [filterType, showAtRisk]);
@@ -140,6 +158,7 @@ export default function Donors() {
                   <th>Donations</th>
                   <th>Last Donation</th>
                   <th>Risk</th>
+                  <th><span className="d-flex align-items-center gap-1"><Brain size={12} /> ML Tier</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -163,6 +182,22 @@ export default function Donors() {
                         </span>
                       ) : (
                         <span className="badge badge-active" style={{ fontSize: '0.7rem' }}>Safe</span>
+                      )}
+                    </td>
+                    <td>
+                      {mlPredictions[s.id]?.tier ? (
+                        <MLInsightBadge
+                          label={mlPredictions[s.id].tier!.tier}
+                          level={mlPredictions[s.id].tier!.tier === 'High' ? 'success' : mlPredictions[s.id].tier!.tier === 'Medium' ? 'info' : 'warning'}
+                        />
+                      ) : mlPredictions[s.id]?.churn ? (
+                        <MLInsightBadge
+                          label={`Churn: ${mlPredictions[s.id].churn!.risk_tier}`}
+                          level={churnLevelColor(mlPredictions[s.id].churn!.risk_tier)}
+                          probability={mlPredictions[s.id].churn!.churn_probability}
+                        />
+                      ) : (
+                        <span className="text-muted" style={{ fontSize: '0.7rem' }}>—</span>
                       )}
                     </td>
                   </tr>

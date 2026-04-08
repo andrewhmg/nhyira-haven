@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getDashboardOverview, getDashboardMetrics } from '../../services/api';
-import type { DashboardOverview, DashboardMetrics } from '../../types/api';
+import { getDashboardOverview, getDashboardMetrics, getSupporters, getResidents } from '../../services/api';
+import type { DashboardOverview, DashboardMetrics, Supporter, Resident } from '../../types/api';
 import KPICard from '../../components/common/KPICard';
 import StatusBadge from '../../components/common/StatusBadge';
-import { Users, AlertTriangle, DollarSign, Activity, Plus, ClipboardList, Eye } from 'lucide-react';
+import MLInsightPanel, { MLMetric } from '../../components/ml/MLInsightPanel';
+import { buildDonorFeatures, buildResidentFeatures, predictChurnRisk, predictEarlyWarning, predictReintegrationReadiness } from '../../services/mlApi';
+import { Users, AlertTriangle, DollarSign, Activity, Plus, ClipboardList, Eye, Brain, Shield, TrendingUp } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -17,6 +19,11 @@ export default function AdminDashboard() {
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  // ML state
+  const [mlChurnHighCount, setMlChurnHighCount] = useState<number | null>(null);
+  const [mlRedRiskCount, setMlRedRiskCount] = useState<number | null>(null);
+  const [mlNearReintegration, setMlNearReintegration] = useState<number | null>(null);
+  const [mlLoading, setMlLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -27,6 +34,48 @@ export default function AdminDashboard() {
       setMetrics(m);
       setLoading(false);
     });
+
+    // Run ML predictions in background
+    const runML = async () => {
+      try {
+        const [supporters, residents] = await Promise.all([
+          getSupporters().catch(() => []),
+          getResidents().catch(() => []),
+        ]);
+
+        // Churn analysis
+        let highChurn = 0;
+        const churnBatch = (supporters as Supporter[]).slice(0, 40).map(async (s) => {
+          try {
+            const result = await predictChurnRisk(buildDonorFeatures(s));
+            if (result.risk_tier === 'High') highChurn++;
+          } catch { /* skip */ }
+        });
+        await Promise.allSettled(churnBatch);
+        setMlChurnHighCount(highChurn);
+
+        // Risk analysis
+        let redRisk = 0;
+        let nearReintegration = 0;
+        const active = (residents as Resident[]).filter((r) => r.status === 'Active').slice(0, 40);
+        const riskBatch = active.map(async (r) => {
+          try {
+            const features = buildResidentFeatures(r);
+            const [warning, readiness] = await Promise.allSettled([
+              predictEarlyWarning(features),
+              predictReintegrationReadiness(features),
+            ]);
+            if (warning.status === 'fulfilled' && warning.value.risk_level === 'Red') redRisk++;
+            if (readiness.status === 'fulfilled' && readiness.value.ready_within_6mo_probability > 0.7) nearReintegration++;
+          } catch { /* skip */ }
+        });
+        await Promise.allSettled(riskBatch);
+        setMlRedRiskCount(redRisk);
+        setMlNearReintegration(nearReintegration);
+      } catch { /* ML unavailable */ }
+      setMlLoading(false);
+    };
+    runML();
   }, []);
 
   if (loading) {
@@ -101,6 +150,48 @@ export default function AdminDashboard() {
           />
         </div>
       </div>
+
+      {/* ML Intelligence Row */}
+      {!mlLoading && (mlChurnHighCount !== null || mlRedRiskCount !== null || mlNearReintegration !== null) && (
+        <div className="row g-3 mb-4">
+          <div className="col-12">
+            <div className="d-flex align-items-center gap-2 mb-2">
+              <Brain size={14} style={{ color: '#8B5CF6' }} />
+              <span className="small fw-semibold" style={{ color: '#8B5CF6' }}>ML-Powered Insights</span>
+            </div>
+          </div>
+          {mlChurnHighCount !== null && (
+            <div className="col-6 col-lg-4">
+              <KPICard
+                label="ML: High Churn Risk Donors"
+                value={mlChurnHighCount}
+                icon={<AlertTriangle size={20} />}
+                color={mlChurnHighCount > 0 ? 'var(--nh-danger)' : 'var(--nh-success)'}
+              />
+            </div>
+          )}
+          {mlRedRiskCount !== null && (
+            <div className="col-6 col-lg-4">
+              <KPICard
+                label="ML: Red Risk Residents"
+                value={mlRedRiskCount}
+                icon={<Shield size={20} />}
+                color={mlRedRiskCount > 0 ? 'var(--nh-danger)' : 'var(--nh-success)'}
+              />
+            </div>
+          )}
+          {mlNearReintegration !== null && (
+            <div className="col-6 col-lg-4">
+              <KPICard
+                label="ML: Near Reintegration"
+                value={mlNearReintegration}
+                icon={<TrendingUp size={20} />}
+                color="var(--nh-secondary)"
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="row g-4">
         {/* Left column */}

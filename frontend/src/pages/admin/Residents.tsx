@@ -4,7 +4,9 @@ import { getResidents, getSafehouses, deleteResident } from '../../services/api'
 import type { Resident, Safehouse } from '../../types/api';
 import StatusBadge from '../../components/common/StatusBadge';
 import ConfirmModal from '../../components/common/ConfirmModal';
-import { Search, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import MLInsightBadge, { riskLevelColor } from '../../components/ml/MLInsightBadge';
+import { buildResidentFeatures, predictEarlyWarning, type EarlyWarningResult } from '../../services/mlApi';
+import { Search, Plus, ChevronLeft, ChevronRight, Brain } from 'lucide-react';
 
 const PAGE_SIZE = 15;
 
@@ -18,6 +20,7 @@ export default function Residents() {
   const [filterCategory, setFilterCategory] = useState('');
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<Resident | null>(null);
+  const [mlRisks, setMlRisks] = useState<Record<number, EarlyWarningResult>>({});
 
   const loadData = async () => {
     setLoading(true);
@@ -33,6 +36,18 @@ export default function Residents() {
     if (!safehouses.length) setSafehouses(s);
     setLoading(false);
     setPage(1);
+
+    // Fire ML predictions for active residents (non-blocking)
+    const risks: Record<number, EarlyWarningResult> = {};
+    const active = r.filter((res: Resident) => res.status === 'Active').slice(0, 50);
+    const batch = active.map(async (res: Resident) => {
+      try {
+        const features = buildResidentFeatures(res);
+        const result = await predictEarlyWarning(features);
+        risks[res.id] = result;
+      } catch { /* ML service unavailable */ }
+    });
+    Promise.allSettled(batch).then(() => setMlRisks({ ...risks }));
   };
 
   useEffect(() => { loadData(); }, [filterSafehouse, filterStatus, filterCategory]);
@@ -121,6 +136,7 @@ export default function Residents() {
                   <th>Status</th>
                   <th>Category</th>
                   <th>Intake Date</th>
+                  <th><span className="d-flex align-items-center gap-1"><Brain size={12} /> Risk</span></th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -137,6 +153,17 @@ export default function Residents() {
                     <td><StatusBadge status={r.status} size="sm" /></td>
                     <td className="small">{r.caseCategory}</td>
                     <td className="small">{new Date(r.intakeDate).toLocaleDateString()}</td>
+                    <td>
+                      {mlRisks[r.id] ? (
+                        <MLInsightBadge
+                          label={mlRisks[r.id].risk_level}
+                          level={riskLevelColor(mlRisks[r.id].risk_level)}
+                          probability={mlRisks[r.id].bad_exit_probability}
+                        />
+                      ) : r.status === 'Active' ? (
+                        <span className="text-muted" style={{ fontSize: '0.7rem' }}>—</span>
+                      ) : null}
+                    </td>
                     <td>
                       <div className="d-flex gap-1">
                         <Link to={`/admin/residents/${r.id}`} className="btn btn-sm btn-outline-secondary" style={{ fontSize: '0.75rem' }}>View</Link>

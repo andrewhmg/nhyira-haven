@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { getResidents } from '../../services/api';
 import type { Resident, ProcessRecording } from '../../types/api';
 import StatusBadge from '../../components/common/StatusBadge';
+import MLInsightBadge from '../../components/ml/MLInsightBadge';
+import { predictSessionEffectiveness, type SessionEffectivenessResult } from '../../services/mlApi';
 import { Search, Plus, X, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -16,6 +18,7 @@ export default function ProcessRecordings() {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [mlEffectiveness, setMlEffectiveness] = useState<Record<number, SessionEffectivenessResult>>({});
 
   useEffect(() => {
     getResidents()
@@ -29,6 +32,23 @@ export default function ProcessRecordings() {
         all.sort((a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime());
         setRecordings(all);
         setLoading(false);
+
+        // Fire ML predictions for recent recordings (non-blocking)
+        const predictions: Record<number, SessionEffectivenessResult> = {};
+        const batch = all.slice(0, 30).map(async (rec) => {
+          try {
+            const features: Record<string, number> = {
+              [`session_type_${rec.sessionType.replace(/\s/g, '')}`]: 1,
+              session_duration_minutes: 60,
+              session_number: all.filter((r) => r.residentId === rec.residentId).indexOf(rec) + 1,
+              emotional_baseline: 3,
+              is_confidential: rec.isConfidential ? 1 : 0,
+            };
+            const result = await predictSessionEffectiveness(features);
+            predictions[rec.id] = result;
+          } catch { /* ML unavailable */ }
+        });
+        Promise.allSettled(batch).then(() => setMlEffectiveness({ ...predictions }));
       })
       .catch(() => setLoading(false));
   }, []);
@@ -156,6 +176,13 @@ export default function ProcessRecordings() {
                       <span className="badge badge-on-hold d-flex align-items-center gap-1" style={{ fontSize: '0.65rem' }}>
                         <Lock size={8} /> Confidential
                       </span>
+                    )}
+                    {mlEffectiveness[r.id] && (
+                      <MLInsightBadge
+                        label={mlEffectiveness[r.id].prediction}
+                        level={mlEffectiveness[r.id].effectiveness_probability > 0.5 ? 'success' : 'warning'}
+                        probability={mlEffectiveness[r.id].effectiveness_probability}
+                      />
                     )}
                   </div>
                   <p className="small text-muted mb-1">{r.summary.slice(0, 200)}{r.summary.length > 200 ? '...' : ''}</p>

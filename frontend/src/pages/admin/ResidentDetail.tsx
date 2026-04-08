@@ -6,6 +6,9 @@ import StatusBadge from '../../components/common/StatusBadge';
 import ConfirmModal from '../../components/common/ConfirmModal';
 import { ArrowLeft, Trash2, Calendar, User, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
+import MLInsightPanel, { MLMetric, MLFactorBar } from '../../components/ml/MLInsightPanel';
+import MLInsightBadge, { riskLevelColor, readinessLevelColor } from '../../components/ml/MLInsightBadge';
+import { getResidentMLInsights, type EarlyWarningResult, type ReintegrationResult, type IncidentRiskResult, type ReintegrationReadinessResult } from '../../services/mlApi';
 
 type Tab = 'overview' | 'recordings' | 'education' | 'health' | 'interventions' | 'incidents';
 
@@ -25,6 +28,14 @@ export default function ResidentDetail() {
   const [tab, setTab] = useState<Tab>('overview');
   const [loading, setLoading] = useState(true);
   const [showDelete, setShowDelete] = useState(false);
+  const [mlInsights, setMlInsights] = useState<{
+    earlyWarning: EarlyWarningResult | null;
+    reintegration: ReintegrationResult | null;
+    incidentRisk: IncidentRiskResult | null;
+    readiness: ReintegrationReadinessResult | null;
+  } | null>(null);
+  const [mlLoading, setMlLoading] = useState(true);
+  const [mlError, setMlError] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -34,6 +45,13 @@ export default function ResidentDetail() {
       getResidentTimeline(rid).catch(() => null),
     ]).then(([r, t]) => {
       setResident(r);
+      if (r) {
+        getResidentMLInsights(r)
+          .then((insights) => { setMlInsights(insights); setMlLoading(false); })
+          .catch(() => { setMlError(true); setMlLoading(false); });
+      } else {
+        setMlLoading(false);
+      }
       if (t) {
         const events: TimelineEvent[] = [];
         t.processRecordings?.forEach((pr) =>
@@ -154,6 +172,61 @@ export default function ResidentDetail() {
           </div>
         )}
       </div>
+
+      {/* ML Insights Panel */}
+      <MLInsightPanel title="Case Intelligence" loading={mlLoading} error={mlError}>
+        {mlInsights && (
+          <>
+            <div className="row g-3 mb-3">
+              {mlInsights.earlyWarning && (
+                <div className="col-md-3">
+                  <MLMetric
+                    label="Exit Risk"
+                    value={mlInsights.earlyWarning.risk_level}
+                    sublabel={`${(mlInsights.earlyWarning.bad_exit_probability * 100).toFixed(0)}% bad exit probability`}
+                    color={mlInsights.earlyWarning.risk_level === 'Red' ? '#C0392B' : mlInsights.earlyWarning.risk_level === 'Yellow' ? '#E8A838' : '#2D8659'}
+                  />
+                </div>
+              )}
+              {mlInsights.reintegration && (
+                <div className="col-md-3">
+                  <MLMetric
+                    label="Exit Readiness"
+                    value={mlInsights.reintegration.readiness}
+                    sublabel={`${(mlInsights.reintegration.success_probability * 100).toFixed(0)}% success probability`}
+                    color={mlInsights.reintegration.readiness === 'Ready' ? '#2D8659' : mlInsights.reintegration.readiness === 'Progressing' ? '#E8A838' : '#C0392B'}
+                  />
+                </div>
+              )}
+              {mlInsights.incidentRisk && (
+                <div className="col-md-3">
+                  <MLMetric
+                    label="Incident Risk (Next Month)"
+                    value={mlInsights.incidentRisk.alert_level}
+                    sublabel={`${(mlInsights.incidentRisk.incident_probability * 100).toFixed(0)}% probability`}
+                    color={mlInsights.incidentRisk.alert_level === 'High Risk' ? '#C0392B' : mlInsights.incidentRisk.alert_level === 'Moderate Risk' ? '#E8A838' : '#2D8659'}
+                  />
+                </div>
+              )}
+              {mlInsights.readiness && (
+                <div className="col-md-3">
+                  <MLMetric
+                    label="Reintegration Timeline"
+                    value={mlInsights.readiness.estimated_months_to_readiness !== undefined
+                      ? `~${Math.round(mlInsights.readiness.estimated_months_to_readiness)} months`
+                      : mlInsights.readiness.readiness}
+                    sublabel={`${(mlInsights.readiness.ready_within_6mo_probability * 100).toFixed(0)}% ready within 6 months`}
+                    color="#8B5CF6"
+                  />
+                </div>
+              )}
+            </div>
+            {mlInsights.earlyWarning && mlInsights.earlyWarning.top_factors.length > 0 && (
+              <MLFactorBar factors={mlInsights.earlyWarning.top_factors} />
+            )}
+          </>
+        )}
+      </MLInsightPanel>
 
       {/* Tabs */}
       <ul className="nav nav-tabs mb-4">

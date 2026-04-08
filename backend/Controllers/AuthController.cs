@@ -280,6 +280,66 @@ public class AuthController : ControllerBase
         });
     }
 
+    // POST: api/auth/reset-seeded-passwords
+    [HttpPost("reset-seeded-passwords")]
+    public async Task<ActionResult<AuthResponseDto>> ResetSeededPasswords()
+    {
+        try
+        {
+            var users = new[] {
+                (email: "admin@nhyirahaven.org", password: "NhyiraHaven2026!"),
+                (email: "staff@nhyirahaven.org", password: "NhyiraHaven2026!"),
+                (email: "donor@example.com", password: "NhyiraHaven2026!")
+            };
+
+            var results = new List<string>();
+            foreach (var (email, password) in users)
+            {
+                var user = await _userManager.FindByEmailAsync(email);
+                if (user != null)
+                {
+                    // Remove old password and set new one
+                    var removeResult = await _userManager.RemovePasswordAsync(user);
+                    if (removeResult.Succeeded)
+                    {
+                        var addResult = await _userManager.AddPasswordAsync(user, password);
+                        if (addResult.Succeeded)
+                        {
+                            results.Add($"{email}: password reset");
+                        }
+                        else
+                        {
+                            results.Add($"{email}: failed - {string.Join(",", addResult.Errors.Select(e => e.Description))}");
+                        }
+                    }
+                    else
+                    {
+                        results.Add($"{email}: failed to remove old password");
+                    }
+                }
+                else
+                {
+                    results.Add($"{email}: user not found");
+                }
+            }
+
+            return Ok(new AuthResponseDto
+            {
+                Success = true,
+                Message = string.Join("; ", results)
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to reset seeded passwords");
+            return StatusCode(500, new AuthResponseDto
+            {
+                Success = false,
+                Message = $"Failed to reset passwords: {ex.Message}"
+            });
+        }
+    }
+
     private string GenerateJwtToken(ApplicationUser user)
     {
         var jwtKey = _configuration["Jwt:Key"] ?? "NhyiraHaven2026SecretKeyForDevelopmentOnly!";

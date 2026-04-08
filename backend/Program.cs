@@ -127,6 +127,33 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowFrontend");
+
+// Security Headers
+app.Use(async (context, next) =>
+{
+    // Content Security Policy
+    context.Response.Headers["Content-Security-Policy"] = 
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+        "font-src 'self' https://fonts.gstatic.com; " +
+        "img-src 'self' data: https:; " +
+        "connect-src 'self' https://nhyira-haven-api.azurewebsites.net https://db.zuyyebiltbkzkooegbrs.supabase.co;";
+    
+    // X-Content-Type-Options
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    
+    // X-Frame-Options (prevent clickjacking)
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    
+    // X-XSS-Protection
+    context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
+    
+    // Referrer-Policy
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    
+    await next();
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

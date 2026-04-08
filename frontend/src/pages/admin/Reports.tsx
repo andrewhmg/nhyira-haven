@@ -3,16 +3,14 @@ import { getDashboardMetrics, getDonationStats, getSafehouses, getResidents, get
 import type { DashboardMetrics, Safehouse, Resident, Supporter } from '../../types/api';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import MLInsightPanel, { MLMetric } from '../../components/ml/MLInsightPanel';
 import {
   buildDonorFeatures, buildResidentFeatures,
   predictChurnRisk, predictAllocationROI, predictPostConversion, predictEarlyWarning,
-  type ChurnRiskResult, type AllocationROIResult, type PostConversionResult,
+  type AllocationROIResult,
 } from '../../services/mlApi';
-import { Brain } from 'lucide-react';
-
 const COLORS = ['#B85C38', '#1B6B6D', '#E8A838', '#2D8659', '#8B5CF6', '#C0392B', '#6c757d'];
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 

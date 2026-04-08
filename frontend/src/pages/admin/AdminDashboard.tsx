@@ -4,7 +4,6 @@ import { getDashboardOverview, getDashboardMetrics, getSupporters, getResidents 
 import type { DashboardOverview, DashboardMetrics, Supporter, Resident } from '../../types/api';
 import KPICard from '../../components/common/KPICard';
 import StatusBadge from '../../components/common/StatusBadge';
-import MLInsightPanel, { MLMetric } from '../../components/ml/MLInsightPanel';
 import { buildDonorFeatures, buildResidentFeatures, predictChurnRisk, predictEarlyWarning, predictReintegrationReadiness } from '../../services/mlApi';
 import { Users, AlertTriangle, DollarSign, Activity, Plus, ClipboardList, Eye, Brain, Shield, TrendingUp } from 'lucide-react';
 import {

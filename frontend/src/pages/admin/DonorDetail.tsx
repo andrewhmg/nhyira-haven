@@ -7,7 +7,6 @@ import { ArrowLeft, AlertTriangle, Mail, Phone, Globe, Calendar } from 'lucide-r
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import MLInsightPanel, { MLMetric, MLFactorBar } from '../../components/ml/MLInsightPanel';
-import MLInsightBadge, { churnLevelColor } from '../../components/ml/MLInsightBadge';
 import { getDonorMLInsights, type ChurnRiskResult, type DonorTierResult, type DonorLTVResult } from '../../services/mlApi';
 
 export default function DonorDetail() {

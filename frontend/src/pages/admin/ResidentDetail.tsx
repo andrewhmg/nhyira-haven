@@ -7,7 +7,6 @@ import ConfirmModal from '../../components/common/ConfirmModal';
 import { ArrowLeft, Trash2, Calendar, User, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import MLInsightPanel, { MLMetric, MLFactorBar } from '../../components/ml/MLInsightPanel';
-import MLInsightBadge, { riskLevelColor, readinessLevelColor } from '../../components/ml/MLInsightBadge';
 import { getResidentMLInsights, type EarlyWarningResult, type ReintegrationResult, type IncidentRiskResult, type ReintegrationReadinessResult } from '../../services/mlApi';
 
 type Tab = 'overview' | 'recordings' | 'education' | 'health' | 'interventions' | 'incidents';

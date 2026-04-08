@@ -2,20 +2,24 @@
 -- Run this in Supabase SQL Editor: https://supabase.com/dashboard/project/zuyyebiltbkzkooegbrs/sql
 -- Password for all users: NhyiraHaven2026!
 
--- Create Roles
+-- Create Roles (skip if exists)
 INSERT INTO "AspNetRoles" ("Id", "Name", "NormalizedName", "ConcurrencyStamp")
-VALUES 
-  ('a1b2c3d4-0001-0000-0000-000000000001', 'Admin', 'ADMIN', gen_random_uuid()::text),
-  ('a1b2c3d4-0002-0000-0000-000000000002', 'Staff', 'STAFF', gen_random_uuid()::text),
-  ('a1b2c3d4-0003-0000-0000-000000000003', 'Donor', 'DONOR', gen_random_uuid()::text)
-ON CONFLICT ("Name") DO NOTHING;
+SELECT 'a1b2c3d4-0001-0000-0000-000000000001', 'Admin', 'ADMIN', gen_random_uuid()::text
+WHERE NOT EXISTS (SELECT 1 FROM "AspNetRoles" WHERE "Name" = 'Admin');
+
+INSERT INTO "AspNetRoles" ("Id", "Name", "NormalizedName", "ConcurrencyStamp")
+SELECT 'a1b2c3d4-0002-0000-0000-000000000002', 'Staff', 'STAFF', gen_random_uuid()::text
+WHERE NOT EXISTS (SELECT 1 FROM "AspNetRoles" WHERE "Name" = 'Staff');
+
+INSERT INTO "AspNetRoles" ("Id", "Name", "NormalizedName", "ConcurrencyStamp")
+SELECT 'a1b2c3d4-0003-0000-0000-000000000003', 'Donor', 'DONOR', gen_random_uuid()::text
+WHERE NOT EXISTS (SELECT 1 FROM "AspNetRoles" WHERE "Name" = 'Donor');
 
 -- Create Admin User (Amara Okafor)
 -- Password: NhyiraHaven2026! (ASP.NET Identity PBKDF2 hash)
 INSERT INTO "AspNetUsers" 
 ("Id", "UserName", "NormalizedUserName", "Email", "NormalizedEmail", "EmailConfirmed", "PasswordHash", "FirstName", "LastName", "Role", "CreatedAt", "LockoutEnabled", "AccessFailedCount")
-VALUES 
-(
+SELECT 
   'u1a2b3c4-0001-0000-0000-000000000001',
   'admin@nhyirahaven.org',
   'ADMIN@NHYIRAHAVEN.ORG',
@@ -29,14 +33,12 @@ VALUES
   NOW(),
   false,
   0
-)
-ON CONFLICT ("Email") DO NOTHING;
+WHERE NOT EXISTS (SELECT 1 FROM "AspNetUsers" WHERE "Email" = 'admin@nhyirahaven.org');
 
 -- Create Staff User (James Mensah)
 INSERT INTO "AspNetUsers" 
 ("Id", "UserName", "NormalizedUserName", "Email", "NormalizedEmail", "EmailConfirmed", "PasswordHash", "FirstName", "LastName", "Role", "CreatedAt", "LockoutEnabled", "AccessFailedCount")
-VALUES 
-(
+SELECT 
   'u1a2b3c4-0002-0000-0000-000000000002',
   'staff@nhyirahaven.org',
   'STAFF@NHYIRAHAVEN.ORG',
@@ -50,14 +52,12 @@ VALUES
   NOW(),
   false,
   0
-)
-ON CONFLICT ("Email") DO NOTHING;
+WHERE NOT EXISTS (SELECT 1 FROM "AspNetUsers" WHERE "Email" = 'staff@nhyirahaven.org');
 
 -- Create Donor User (David Mensah)
 INSERT INTO "AspNetUsers" 
 ("Id", "UserName", "NormalizedUserName", "Email", "NormalizedEmail", "EmailConfirmed", "PasswordHash", "FirstName", "LastName", "Role", "CreatedAt", "LockoutEnabled", "AccessFailedCount")
-VALUES 
-(
+SELECT 
   'u1a2b3c4-0003-0000-0000-000000000003',
   'donor@example.com',
   'DONOR@EXAMPLE.COM',
@@ -71,16 +71,20 @@ VALUES
   NOW(),
   false,
   0
-)
-ON CONFLICT ("Email") DO NOTHING;
+WHERE NOT EXISTS (SELECT 1 FROM "AspNetUsers" WHERE "Email" = 'donor@example.com');
 
--- Link Users to Roles
+-- Link Users to Roles (skip if exists)
 INSERT INTO "AspNetUserRoles" ("UserId", "RoleId")
-VALUES 
-  ('u1a2b3c4-0001-0000-0000-000000000001', 'a1b2c3d4-0001-0000-0000-000000000001'),
-  ('u1a2b3c4-0002-0000-0000-000000000002', 'a1b2c3d4-0002-0000-0000-000000000002'),
-  ('u1a2b3c4-0003-0000-0000-000000000003', 'a1b2c3d4-0003-0000-0000-000000000003')
-ON CONFLICT ("UserId", "RoleId") DO NOTHING;
+SELECT 'u1a2b3c4-0001-0000-0000-000000000001', 'a1b2c3d4-0001-0000-0000-000000000001'
+WHERE NOT EXISTS (SELECT 1 FROM "AspNetUserRoles" WHERE "UserId" = 'u1a2b3c4-0001-0000-0000-000000000001' AND "RoleId" = 'a1b2c3d4-0001-0000-0000-000000000001');
+
+INSERT INTO "AspNetUserRoles" ("UserId", "RoleId")
+SELECT 'u1a2b3c4-0002-0000-0000-000000000002', 'a1b2c3d4-0002-0000-0000-000000000002'
+WHERE NOT EXISTS (SELECT 1 FROM "AspNetUserRoles" WHERE "UserId" = 'u1a2b3c4-0002-0000-0000-000000000002' AND "RoleId" = 'a1b2c3d4-0002-0000-0000-000000000002');
+
+INSERT INTO "AspNetUserRoles" ("UserId", "RoleId")
+SELECT 'u1a2b3c4-0003-0000-0000-000000000003', 'a1b2c3d4-0003-0000-0000-000000000003'
+WHERE NOT EXISTS (SELECT 1 FROM "AspNetUserRoles" WHERE "UserId" = 'u1a2b3c4-0003-0000-0000-000000000003' AND "RoleId" = 'a1b2c3d4-0003-0000-0000-000000000003');
 
 -- Verify insertion
 SELECT 

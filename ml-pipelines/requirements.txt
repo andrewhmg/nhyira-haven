@@ -1,9 +1,5 @@
-pandas
 numpy
-matplotlib
-seaborn
 scikit-learn
-statsmodels
 joblib
 flask
 flask-cors

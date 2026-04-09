@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NhyiraHaven.Data;
@@ -7,6 +8,7 @@ namespace NhyiraHaven.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[AllowAnonymous]
 public class DashboardController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

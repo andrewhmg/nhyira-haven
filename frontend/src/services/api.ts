@@ -3,19 +3,27 @@ import type {
   Resident,
   Donation,
   Supporter,
+  ProcessRecording,
+  HomeVisitation,
   DashboardOverview,
   DashboardMetrics,
 } from '../types/api';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
+      ...getAuthHeaders(),
       ...options?.headers,
     },
-    ...options,
   });
 
   if (!response.ok) {
@@ -195,6 +203,58 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
 
 export async function getDashboardMetrics(): Promise<DashboardMetrics> {
   return fetchApi<DashboardMetrics>('/dashboard/metrics');
+}
+
+// ============ Process Recordings ============
+
+export async function createProcessRecording(data: Partial<ProcessRecording>): Promise<ProcessRecording> {
+  return fetchApi<ProcessRecording>('/process-recordings', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// ============ Home Visitations ============
+
+export async function createHomeVisitation(data: Partial<HomeVisitation>): Promise<HomeVisitation> {
+  return fetchApi<HomeVisitation>('/home-visitations', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+// ============ Donor Portal ============
+
+export async function getDonorProfile(): Promise<Supporter> {
+  return fetchApi<Supporter>('/donorportal/me');
+}
+
+export async function getDonorDonations(): Promise<Donation[]> {
+  return fetchApi<Donation[]>('/donorportal/donations');
+}
+
+export async function getDonorImpact(): Promise<{
+  totalDonated: number;
+  donationCount: number;
+  firstDonation?: string;
+  lastDonation?: string;
+  allocations: Array<{ category: string; amount: number }>;
+}> {
+  return fetchApi('/donorportal/impact');
+}
+
+export async function submitDonorDonation(data: {
+  amount: number;
+  donationType?: string;
+  campaignSource?: string;
+  notes?: string;
+  isRecurring: boolean;
+  recurringFrequency?: string;
+}): Promise<Donation> {
+  return fetchApi<Donation>('/donorportal/donate', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 // ============ Health ============

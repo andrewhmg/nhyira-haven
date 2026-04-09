@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getResidents, getSafehouses, deleteResident } from '../../services/api';
+import { getResidents, getSafehouses, deleteResident, createResident } from '../../services/api';
 import type { Resident, Safehouse } from '../../types/api';
 import StatusBadge from '../../components/common/StatusBadge';
 import ConfirmModal from '../../components/common/ConfirmModal';
@@ -21,6 +21,13 @@ export default function Residents() {
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<Resident | null>(null);
   const [mlRisks, setMlRisks] = useState<Record<number, EarlyWarningResult>>({});
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    caseNumber: '', firstName: '', lastName: '', dateOfBirth: '', gender: 'Female',
+    safehouseId: '', intakeDate: new Date().toISOString().split('T')[0], caseCategory: '',
+    referralSource: '', guardianName: '', guardianContact: '', status: 'Active', notes: '',
+  });
+  const [formSubmitting, setFormSubmitting] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -86,9 +93,9 @@ export default function Residents() {
           <h2 className="mb-1">Caseload Inventory</h2>
           <p className="text-muted mb-0 small">{filtered.length} residents found</p>
         </div>
-        <Link to="/admin/residents" className="btn btn-primary d-flex align-items-center gap-1">
+        <button className="btn btn-primary d-flex align-items-center gap-1" onClick={() => setShowCreateForm(true)}>
           <Plus size={16} /> Add Resident
-        </Link>
+        </button>
       </div>
 
       {/* Filters */}
@@ -195,6 +202,142 @@ export default function Residents() {
             <button className="btn btn-sm btn-outline-secondary" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
               <ChevronRight size={14} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {showCreateForm && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content">
+              <div className="modal-header border-0">
+                <h5 className="modal-title fw-bold">Add New Resident</h5>
+                <button className="btn-close" onClick={() => setShowCreateForm(false)} />
+              </div>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setFormSubmitting(true);
+                try {
+                  await createResident({
+                    caseNumber: createForm.caseNumber,
+                    firstName: createForm.firstName,
+                    lastName: createForm.lastName,
+                    dateOfBirth: createForm.dateOfBirth,
+                    gender: createForm.gender,
+                    safehouseId: Number(createForm.safehouseId),
+                    intakeDate: createForm.intakeDate,
+                    caseCategory: createForm.caseCategory,
+                    referralSource: createForm.referralSource,
+                    guardianName: createForm.guardianName || undefined,
+                    guardianContact: createForm.guardianContact || undefined,
+                    status: createForm.status,
+                    notes: createForm.notes || undefined,
+                    isActive: createForm.status === 'Active',
+                  });
+                  setShowCreateForm(false);
+                  setCreateForm({ caseNumber: '', firstName: '', lastName: '', dateOfBirth: '', gender: 'Female', safehouseId: '', intakeDate: new Date().toISOString().split('T')[0], caseCategory: '', referralSource: '', guardianName: '', guardianContact: '', status: 'Active', notes: '' });
+                  loadData();
+                } catch {
+                  alert('Failed to create resident. Ensure you have admin permissions.');
+                } finally {
+                  setFormSubmitting(false);
+                }
+              }}>
+                <div className="modal-body">
+                  <div className="row g-3">
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Case Number *</label>
+                      <input type="text" className="form-control form-control-sm" required placeholder="e.g. NH-2026-001"
+                        value={createForm.caseNumber} onChange={e => setCreateForm({ ...createForm, caseNumber: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">First Name *</label>
+                      <input type="text" className="form-control form-control-sm" required
+                        value={createForm.firstName} onChange={e => setCreateForm({ ...createForm, firstName: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Last Name *</label>
+                      <input type="text" className="form-control form-control-sm" required
+                        value={createForm.lastName} onChange={e => setCreateForm({ ...createForm, lastName: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Date of Birth *</label>
+                      <input type="date" className="form-control form-control-sm" required
+                        value={createForm.dateOfBirth} onChange={e => setCreateForm({ ...createForm, dateOfBirth: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Gender *</label>
+                      <select className="form-select form-select-sm" required value={createForm.gender}
+                        onChange={e => setCreateForm({ ...createForm, gender: e.target.value })}>
+                        <option value="Female">Female</option>
+                        <option value="Male">Male</option>
+                      </select>
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Safehouse *</label>
+                      <select className="form-select form-select-sm" required value={createForm.safehouseId}
+                        onChange={e => setCreateForm({ ...createForm, safehouseId: e.target.value })}>
+                        <option value="">Select...</option>
+                        {safehouses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Intake Date *</label>
+                      <input type="date" className="form-control form-control-sm" required
+                        value={createForm.intakeDate} onChange={e => setCreateForm({ ...createForm, intakeDate: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Case Category *</label>
+                      <select className="form-select form-select-sm" required value={createForm.caseCategory}
+                        onChange={e => setCreateForm({ ...createForm, caseCategory: e.target.value })}>
+                        <option value="">Select...</option>
+                        <option>Trafficked</option>
+                        <option>Physical Abuse</option>
+                        <option>Neglected</option>
+                        <option>Sexual Abuse</option>
+                        <option>Other</option>
+                      </select>
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Referral Source *</label>
+                      <input type="text" className="form-control form-control-sm" required placeholder="e.g. DSWD, Police"
+                        value={createForm.referralSource} onChange={e => setCreateForm({ ...createForm, referralSource: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Guardian Name</label>
+                      <input type="text" className="form-control form-control-sm"
+                        value={createForm.guardianName} onChange={e => setCreateForm({ ...createForm, guardianName: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Guardian Contact</label>
+                      <input type="text" className="form-control form-control-sm"
+                        value={createForm.guardianContact} onChange={e => setCreateForm({ ...createForm, guardianContact: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Status</label>
+                      <select className="form-select form-select-sm" value={createForm.status}
+                        onChange={e => setCreateForm({ ...createForm, status: e.target.value })}>
+                        <option>Active</option>
+                        <option>Reintegrated</option>
+                        <option>Transferred</option>
+                        <option>Closed</option>
+                      </select>
+                    </div>
+                    <div className="col-12">
+                      <label className="form-label small fw-semibold">Notes</label>
+                      <textarea className="form-control form-control-sm" rows={2}
+                        value={createForm.notes} onChange={e => setCreateForm({ ...createForm, notes: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer border-0">
+                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setShowCreateForm(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={formSubmitting}>
+                    {formSubmitting ? 'Creating...' : 'Create Resident'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

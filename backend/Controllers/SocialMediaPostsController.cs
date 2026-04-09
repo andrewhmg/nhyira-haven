@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NhyiraHaven.Data;
@@ -7,6 +8,7 @@ namespace NhyiraHaven.Controllers;
 
 [ApiController]
 [Route("api/social-media-posts")]
+[Authorize]
 public class SocialMediaPostsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -31,6 +33,7 @@ public class SocialMediaPostsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<SocialMediaPost>> PostSocialMediaPost(SocialMediaPost post)
     {
         _context.SocialMediaPosts.Add(post);

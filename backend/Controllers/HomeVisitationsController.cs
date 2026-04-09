@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NhyiraHaven.Data;
@@ -7,6 +8,7 @@ namespace NhyiraHaven.Controllers;
 
 [ApiController]
 [Route("api/home-visitations")]
+[Authorize]
 public class HomeVisitationsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -33,6 +35,7 @@ public class HomeVisitationsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<HomeVisitation>> PostHomeVisitation(HomeVisitation visitation)
     {
         _context.HomeVisitations.Add(visitation);

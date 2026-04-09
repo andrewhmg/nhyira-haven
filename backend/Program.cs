@@ -173,7 +173,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseHsts();
+}
 
+app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 
 // Security Headers
@@ -200,6 +205,12 @@ app.Use(async (context, next) =>
     // Referrer-Policy
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
     
+    // Strict-Transport-Security (HSTS)
+    context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+
+    // Permissions-Policy
+    context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+    
     await next();
 });
 app.UseAuthentication();
@@ -208,6 +219,28 @@ app.MapControllers();
 
 // Root endpoint
 app.MapGet("/", () => "Nhyira Haven API - Running");
+
+// Dark mode preference cookie endpoint (browser-accessible cookie for IS 414)
+app.MapPost("/api/preferences/dark-mode", (HttpContext context) =>
+{
+    var body = context.Request.Query["enabled"].ToString();
+    var enabled = body == "true" || body == "1";
+    context.Response.Cookies.Append("nhyira_dark_mode", enabled ? "true" : "false", new CookieOptions
+    {
+        HttpOnly = false,
+        Secure = true,
+        SameSite = SameSiteMode.Lax,
+        MaxAge = TimeSpan.FromDays(365),
+        Path = "/"
+    });
+    return Results.Ok(new { darkMode = enabled });
+});
+
+app.MapGet("/api/preferences/dark-mode", (HttpContext context) =>
+{
+    var value = context.Request.Cookies["nhyira_dark_mode"];
+    return Results.Ok(new { darkMode = value == "true" });
+});
 
 // Helper to find CSV data in multiple locations
 static string? FindCsvPath()
@@ -244,9 +277,12 @@ app.MapPost("/api/seed", async (ApplicationDbContext context, IWebHostEnvironmen
     return Results.Ok(new { message = "Data seeded successfully" });
 });
 
-// Seed sample data endpoint (available in production)
+// Seed sample data endpoint (development only)
 app.MapPost("/api/seed-sample", async (ApplicationDbContext context, IWebHostEnvironment env) =>
 {
+    if (!env.IsDevelopment())
+        return Results.Forbid();
+
     try
     {
         var csvPath = FindCsvPath();
@@ -350,8 +386,11 @@ if (args.Length > 0 && args[0] == "seed")
     return;
 }
 
-// Debug endpoint - remove after testing
-app.MapGet("/api/debug/csv-path", () => {
+// Debug endpoint - development only
+app.MapGet("/api/debug/csv-path", (IWebHostEnvironment env) => {
+    if (!env.IsDevelopment())
+        return Results.Forbid();
+
     var candidates = new[]
     {
         Path.Combine(Directory.GetCurrentDirectory(), "data", "lighthouse_csv_v7"),

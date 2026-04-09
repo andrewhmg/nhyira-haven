@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getSupporters, getAtRiskSupporters, getDonationStats } from '../../services/api';
+import { getSupporters, getAtRiskSupporters, getDonationStats, createSupporter, deleteSupporter } from '../../services/api';
 import type { Supporter } from '../../types/api';
+import ConfirmModal from '../../components/common/ConfirmModal';
 import StatusBadge from '../../components/common/StatusBadge';
 import KPICard from '../../components/common/KPICard';
 import MLInsightBadge, { churnLevelColor } from '../../components/ml/MLInsightBadge';
@@ -19,6 +20,12 @@ export default function Donors() {
   const [page, setPage] = useState(1);
   const [stats, setStats] = useState<{ totalAmount: number; recurringDonations: number; averageDonation: number; totalDonations: number } | null>(null);
   const [mlPredictions, setMlPredictions] = useState<Record<number, { churn?: ChurnRiskResult; tier?: DonorTierResult }>>({});
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Supporter | null>(null);
+  const [createForm, setCreateForm] = useState({
+    firstName: '', lastName: '', email: '', phone: '', supporterType: 'Individual', country: '',
+  });
+  const [formSubmitting, setFormSubmitting] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
@@ -67,6 +74,9 @@ export default function Donors() {
           <h2 className="mb-1">Donors & Supporters</h2>
           <p className="text-muted mb-0 small">{filtered.length} supporters found</p>
         </div>
+        <button className="btn btn-primary d-flex align-items-center gap-1" onClick={() => setShowCreateForm(true)}>
+          <Users size={16} /> Add Supporter
+        </button>
       </div>
 
       {/* KPI Row */}
@@ -159,6 +169,7 @@ export default function Donors() {
                   <th>Last Donation</th>
                   <th>Risk</th>
                   <th><span className="d-flex align-items-center gap-1"><Brain size={12} /> ML Tier</span></th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -200,6 +211,13 @@ export default function Donors() {
                         <span className="text-muted" style={{ fontSize: '0.7rem' }}>—</span>
                       )}
                     </td>
+                    <td>
+                      <div className="d-flex gap-1">
+                        <Link to={`/admin/donors/${s.id}`} className="btn btn-sm btn-outline-secondary" style={{ fontSize: '0.75rem' }}>View</Link>
+                        <button className="btn btn-sm btn-outline-danger" style={{ fontSize: '0.75rem' }}
+                          onClick={() => setDeleteTarget(s)}>Delete</button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -216,6 +234,110 @@ export default function Donors() {
             <button className="btn btn-sm btn-outline-secondary" disabled={page >= totalPages} onClick={() => setPage(page + 1)}><ChevronRight size={14} /></button>
           </div>
         </div>
+      )}
+
+      {showCreateForm && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header border-0">
+                <h5 className="modal-title fw-bold">Add New Supporter</h5>
+                <button className="btn-close" onClick={() => setShowCreateForm(false)} />
+              </div>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setFormSubmitting(true);
+                try {
+                  await createSupporter({
+                    firstName: createForm.firstName,
+                    lastName: createForm.lastName,
+                    email: createForm.email,
+                    phone: createForm.phone || undefined,
+                    supporterType: createForm.supporterType,
+                    country: createForm.country || undefined,
+                    joinedDate: new Date().toISOString(),
+                    totalDonated: 0,
+                    donationCount: 0,
+                    isActive: true,
+                    isAtRisk: false,
+                  });
+                  setShowCreateForm(false);
+                  setCreateForm({ firstName: '', lastName: '', email: '', phone: '', supporterType: 'Individual', country: '' });
+                  loadData();
+                } catch {
+                  alert('Failed to create supporter. Ensure you have admin permissions.');
+                } finally {
+                  setFormSubmitting(false);
+                }
+              }}>
+                <div className="modal-body">
+                  <div className="row g-3">
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">First Name *</label>
+                      <input type="text" className="form-control form-control-sm" required
+                        value={createForm.firstName} onChange={e => setCreateForm({ ...createForm, firstName: e.target.value })} />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Last Name *</label>
+                      <input type="text" className="form-control form-control-sm" required
+                        value={createForm.lastName} onChange={e => setCreateForm({ ...createForm, lastName: e.target.value })} />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Email *</label>
+                      <input type="email" className="form-control form-control-sm" required
+                        value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Phone</label>
+                      <input type="text" className="form-control form-control-sm"
+                        value={createForm.phone} onChange={e => setCreateForm({ ...createForm, phone: e.target.value })} />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Supporter Type *</label>
+                      <select className="form-select form-select-sm" required value={createForm.supporterType}
+                        onChange={e => setCreateForm({ ...createForm, supporterType: e.target.value })}>
+                        <option>Individual</option>
+                        <option>Corporate</option>
+                        <option>Foundation</option>
+                        <option>Volunteer</option>
+                        <option>Skills Contributor</option>
+                      </select>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label small fw-semibold">Country</label>
+                      <input type="text" className="form-control form-control-sm"
+                        value={createForm.country} onChange={e => setCreateForm({ ...createForm, country: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer border-0">
+                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setShowCreateForm(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={formSubmitting}>
+                    {formSubmitting ? 'Creating...' : 'Create Supporter'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <ConfirmModal
+          title="Delete Supporter"
+          message={`Are you sure you want to delete ${deleteTarget.firstName} ${deleteTarget.lastName}? This action cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={async () => {
+            try {
+              await deleteSupporter(deleteTarget.id);
+              setDeleteTarget(null);
+              loadData();
+            } catch {
+              alert('Failed to delete supporter.');
+            }
+          }}
+          onCancel={() => setDeleteTarget(null)}
+        />
       )}
     </div>
   );

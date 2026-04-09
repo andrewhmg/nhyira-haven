@@ -77,6 +77,12 @@ export interface Resident {
   reintegrationDate?: string;
   notes?: string;
   isActive: boolean;
+  disabilityInfo?: string;
+  is4PsBeneficiary?: boolean;
+  isSoloParentChild?: boolean;
+  isIndigenous?: boolean;
+  isInformalSettler?: boolean;
+  assignedSocialWorkers?: string;
   safehouse?: Safehouse;
   processRecordings?: ProcessRecording[];
   homeVisitations?: HomeVisitation[];
@@ -172,6 +178,20 @@ export interface IncidentReport {
   followUpRequired?: string;
   isResolved: boolean;
   resolutionDate?: string;
+  notes?: string;
+}
+
+export interface CaseConference {
+  id: number;
+  residentId: number;
+  conferenceDate: string;
+  conferenceType: string;
+  facilitator?: string;
+  attendees?: string;
+  summary: string;
+  decisions?: string;
+  actionItems?: string;
+  nextConferenceDate?: string;
   notes?: string;
 }
 

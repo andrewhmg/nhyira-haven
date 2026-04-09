@@ -57,6 +57,23 @@ def get_models():
         _models['roi_health'] = load_model('allocation_roi_health_model.joblib')
         _models['roi_incident'] = load_model('allocation_roi_incident_model.joblib')
         _models['roi_features'] = load_model('allocation_roi_features.joblib')
+        # Donor LTV models
+        _models['ltv_full'] = load_model('donor_ltv_full_model.joblib')
+        _models['ltv_features'] = load_model('donor_ltv_features.joblib')
+        # Counseling effectiveness models
+        _models['counseling_gb'] = load_model('counseling_effectiveness_gb_model.joblib')
+        _models['counseling_features'] = load_model('counseling_effectiveness_features.joblib')
+        # Incident early warning models
+        _models['incident_gb'] = load_model('incident_warning_gb_model.joblib')
+        _models['incident_features'] = load_model('incident_warning_features.joblib')
+        # Family cooperation models
+        _models['family_stage1'] = load_model('family_coop_stage1_model.joblib')
+        _models['family_stage2'] = load_model('family_coop_stage2_model.joblib')
+        _models['family_features'] = load_model('family_coop_features.joblib')
+        # Reintegration readiness models
+        _models['readiness_classifier'] = load_model('reintegration_readiness_classifier.joblib')
+        _models['readiness_regressor'] = load_model('reintegration_readiness_regressor.joblib')
+        _models['readiness_features'] = load_model('reintegration_readiness_features.joblib')
     return _models
 
 
@@ -314,6 +331,173 @@ def predict_allocation_roi():
             'predicted_outcome': predicted,
             'target_metric': metric_name,
             'top_factors': [{'feature': f, 'importance': float(v)} for f, v in top_factors],
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/ml/donor-ltv', methods=['POST'])
+def predict_donor_ltv():
+    """Predict donor lifetime value."""
+    try:
+        models = get_models()
+        data = request.get_json()
+        raw = data.get('features', {})
+        features = models.get('ltv_features')
+        if features is None:
+            return jsonify({'error': 'LTV model not loaded'}), 503
+
+        X = np.array([[raw.get(f, 0) for f in features]])
+        full_model = models['ltv_full']
+        predicted_ltv = float(full_model.predict(X)[0])
+
+        importances = dict(zip(features, full_model.feature_importances_))
+        top_factors = sorted(importances.items(), key=lambda x: -x[1])[:5]
+
+        if predicted_ltv > 5000:
+            tier = 'Platinum'
+        elif predicted_ltv > 2000:
+            tier = 'Gold'
+        elif predicted_ltv > 500:
+            tier = 'Silver'
+        else:
+            tier = 'Bronze'
+
+        return jsonify({
+            'predicted_ltv': predicted_ltv,
+            'ltv_tier': tier,
+            'top_factors': [{'feature': f, 'importance': float(v)} for f, v in top_factors]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/ml/session-effectiveness', methods=['POST'])
+def predict_session_effectiveness():
+    """Predict counseling session effectiveness."""
+    try:
+        models = get_models()
+        data = request.get_json()
+        raw = data.get('features', {})
+        features = models.get('counseling_features')
+        if features is None:
+            return jsonify({'error': 'Counseling model not loaded'}), 503
+
+        X = np.array([[raw.get(f, 0) for f in features]])
+        gb = models['counseling_gb']
+        proba = gb.predict_proba(X)[0][1]
+        prediction = 'Effective' if proba >= 0.5 else 'Needs Review'
+
+        importances = dict(zip(features, gb.feature_importances_))
+        top_factors = sorted(importances.items(), key=lambda x: -x[1])[:5]
+
+        return jsonify({
+            'effectiveness_probability': float(proba),
+            'prediction': prediction,
+            'top_factors': [{'feature': f, 'importance': float(v)} for f, v in top_factors]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/ml/incident-risk', methods=['POST'])
+def predict_incident_risk():
+    """Predict incident risk for a resident."""
+    try:
+        models = get_models()
+        data = request.get_json()
+        raw = data.get('features', {})
+        features = models.get('incident_features')
+        if features is None:
+            return jsonify({'error': 'Incident model not loaded'}), 503
+
+        X = np.array([[raw.get(f, 0) for f in features]])
+        gb = models['incident_gb']
+        proba = gb.predict_proba(X)[0][1]
+
+        if proba > 0.7:
+            risk = 'High'
+        elif proba > 0.3:
+            risk = 'Medium'
+        else:
+            risk = 'Low'
+
+        importances = dict(zip(features, gb.feature_importances_))
+        top_factors = sorted(importances.items(), key=lambda x: -x[1])[:5]
+
+        return jsonify({
+            'incident_probability': float(proba),
+            'risk_level': risk,
+            'top_factors': [{'feature': f, 'importance': float(v)} for f, v in top_factors]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/ml/family-cooperation', methods=['POST'])
+def predict_family_cooperation():
+    """Predict family cooperation and reintegration outcome."""
+    try:
+        models = get_models()
+        data = request.get_json()
+        raw = data.get('features', {})
+        stage = data.get('stage', 1)
+        features = models.get('family_features')
+        if features is None:
+            return jsonify({'error': 'Family cooperation model not loaded'}), 503
+
+        X = np.array([[raw.get(f, 0) for f in features]])
+        model_key = 'family_stage1' if stage == 1 else 'family_stage2'
+        model = models[model_key]
+        proba = model.predict_proba(X)[0][1]
+        prediction = 'Cooperative' if proba >= 0.5 else 'Non-Cooperative'
+
+        importances = dict(zip(features, model.feature_importances_))
+        top_factors = sorted(importances.items(), key=lambda x: -x[1])[:5]
+
+        return jsonify({
+            'cooperation_probability': float(proba),
+            'prediction': prediction,
+            'stage': stage,
+            'top_factors': [{'feature': f, 'importance': float(v)} for f, v in top_factors]
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@app.route('/api/ml/reintegration-readiness', methods=['POST'])
+def predict_reintegration_readiness():
+    """Predict reintegration readiness score."""
+    try:
+        models = get_models()
+        data = request.get_json()
+        raw = data.get('features', {})
+        features = models.get('readiness_features')
+        if features is None:
+            return jsonify({'error': 'Readiness model not loaded'}), 503
+
+        X = np.array([[raw.get(f, 0) for f in features]])
+        classifier = models['readiness_classifier']
+        regressor = models['readiness_regressor']
+
+        proba = classifier.predict_proba(X)[0][1]
+        score = float(regressor.predict(X)[0])
+
+        if proba > 0.7:
+            readiness = 'Ready'
+        elif proba > 0.4:
+            readiness = 'Progressing'
+        else:
+            readiness = 'Not Ready'
+
+        importances = dict(zip(features, classifier.feature_importances_))
+        top_factors = sorted(importances.items(), key=lambda x: -x[1])[:5]
+
+        return jsonify({
+            'readiness_probability': float(proba),
+            'readiness_score': score,
+            'readiness_level': readiness,
+            'top_factors': [{'feature': f, 'importance': float(v)} for f, v in top_factors]
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 400

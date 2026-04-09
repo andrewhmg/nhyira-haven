@@ -28,6 +28,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<HealthWellbeingRecord> HealthWellbeingRecords { get; set; }
     public DbSet<InterventionPlan> InterventionPlans { get; set; }
     public DbSet<IncidentReport> IncidentReports { get; set; }
+    public DbSet<CaseConference> CaseConferences { get; set; }
 
     // Outreach & Communication Domain
     public DbSet<SocialMediaPost> SocialMediaPosts { get; set; }
@@ -113,6 +114,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasMany(r => r.IncidentReports)
             .WithOne(ir => ir.Resident)
             .HasForeignKey(ir => ir.ResidentId);
+
+        modelBuilder.Entity<Resident>()
+            .HasMany(r => r.CaseConferences)
+            .WithOne(cc => cc.Resident)
+            .HasForeignKey(cc => cc.ResidentId);
 
         // Social Media relationships
         modelBuilder.Entity<Donation>()

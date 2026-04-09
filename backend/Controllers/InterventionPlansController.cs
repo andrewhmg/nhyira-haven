@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NhyiraHaven.Data;
@@ -7,6 +8,7 @@ namespace NhyiraHaven.Controllers;
 
 [ApiController]
 [Route("api/intervention-plans")]
+[Authorize]
 public class InterventionPlansController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -33,6 +35,7 @@ public class InterventionPlansController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<InterventionPlan>> PostInterventionPlan(InterventionPlan plan)
     {
         _context.InterventionPlans.Add(plan);

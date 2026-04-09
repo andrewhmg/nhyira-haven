@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace NhyiraHaven.Models;
 
 // DONOR & SUPPORT DOMAIN
@@ -5,8 +7,11 @@ namespace NhyiraHaven.Models;
 public class Safehouse
 {
     public int Id { get; set; }
+    [Required, StringLength(100)]
     public string Name { get; set; } = string.Empty;
+    [Required, StringLength(200)]
     public string Location { get; set; } = string.Empty;
+    [Range(1, 500)]
     public int Capacity { get; set; }
     public int CurrentResidents { get; set; }
     public string? ContactPhone { get; set; }
@@ -53,8 +58,11 @@ public class PartnerAssignment
 public class Supporter
 {
     public int Id { get; set; }
+    [Required, StringLength(100)]
     public string FirstName { get; set; } = string.Empty;
+    [Required, StringLength(100)]
     public string LastName { get; set; } = string.Empty;
+    [Required, EmailAddress, StringLength(200)]
     public string Email { get; set; } = string.Empty;
     public string? Phone { get; set; }
     public string SupporterType { get; set; } = string.Empty; // Individual, Corporate, Foundation
@@ -77,10 +85,14 @@ public class Supporter
 public class Donation
 {
     public int Id { get; set; }
+    [Required]
     public int SupporterId { get; set; }
+    [Range(0, 10_000_000)]
     public decimal Amount { get; set; }
+    [Required, StringLength(10)]
     public string Currency { get; set; } = "USD";
-    public string DonationType { get; set; } = string.Empty; // Monetary, InKind, Time, Skills
+    [Required, StringLength(30)]
+    public string DonationType { get; set; } = string.Empty;
     public DateTime DonationDate { get; set; }
     public string? CampaignSource { get; set; }
     public int? SocialMediaPostId { get; set; }

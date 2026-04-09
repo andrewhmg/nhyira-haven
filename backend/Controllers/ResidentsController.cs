@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NhyiraHaven.Data;
@@ -7,6 +8,7 @@ namespace NhyiraHaven.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ResidentsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -106,6 +108,7 @@ public class ResidentsController : ControllerBase
 
     // POST: api/residents
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Resident>> CreateResident(Resident resident)
     {
         _context.Residents.Add(resident);
@@ -116,6 +119,7 @@ public class ResidentsController : ControllerBase
 
     // PUT: api/residents/5
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateResident(int id, Resident resident)
     {
         if (id != resident.Id)
@@ -146,6 +150,7 @@ public class ResidentsController : ControllerBase
 
     // DELETE: api/residents/5
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteResident(int id)
     {
         var resident = await _context.Residents.FindAsync(id);

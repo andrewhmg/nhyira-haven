@@ -164,6 +164,28 @@ export default function ResidentDetail() {
           </div>
         </div>
 
+        {/* Socio-demographic & Disability Info */}
+        <div className="row g-3 mt-2 pt-2 border-top">
+          <div className="col-md-4">
+            <div className="text-muted small">Disability Information</div>
+            <div className="small fw-semibold">{resident.disabilityInfo || '—'}</div>
+          </div>
+          <div className="col-md-4">
+            <div className="text-muted small">Assigned Social Workers</div>
+            <div className="small fw-semibold">{resident.assignedSocialWorkers || '—'}</div>
+          </div>
+          <div className="col-md-4">
+            <div className="text-muted small">Family Socio-Demographic Profile</div>
+            <div className="d-flex flex-wrap gap-1 mt-1">
+              {resident.is4PsBeneficiary && <span className="badge bg-info text-dark" style={{ fontSize: '0.7rem' }}>4Ps Beneficiary</span>}
+              {resident.isSoloParentChild && <span className="badge bg-info text-dark" style={{ fontSize: '0.7rem' }}>Solo Parent</span>}
+              {resident.isIndigenous && <span className="badge bg-info text-dark" style={{ fontSize: '0.7rem' }}>Indigenous</span>}
+              {resident.isInformalSettler && <span className="badge bg-info text-dark" style={{ fontSize: '0.7rem' }}>Informal Settler</span>}
+              {!resident.is4PsBeneficiary && !resident.isSoloParentChild && !resident.isIndigenous && !resident.isInformalSettler && <span className="small text-muted">—</span>}
+            </div>
+          </div>
+        </div>
+
         {resident.notes && (
           <div className="mt-3 pt-3 border-top">
             <div className="text-muted small mb-1">Notes</div>

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace NhyiraHaven.Models;
 
 // CASE MANAGEMENT DOMAIN
@@ -5,21 +7,44 @@ namespace NhyiraHaven.Models;
 public class Resident
 {
     public int Id { get; set; }
+    [Required, StringLength(50)]
     public string CaseNumber { get; set; } = string.Empty;
+    [Required, StringLength(100)]
     public string FirstName { get; set; } = string.Empty;
+    [Required, StringLength(100)]
     public string LastName { get; set; } = string.Empty;
+    [Required]
     public DateTime DateOfBirth { get; set; }
+    [Required, StringLength(20)]
     public string Gender { get; set; } = string.Empty;
+    [Required]
     public int SafehouseId { get; set; }
+    [Required]
     public DateTime IntakeDate { get; set; }
-    public string CaseCategory { get; set; } = string.Empty; // Trafficking, Abuse, Other
+    [Required, StringLength(50)]
+    public string CaseCategory { get; set; } = string.Empty;
+    [Required, StringLength(100)]
     public string ReferralSource { get; set; } = string.Empty;
+    [StringLength(100)]
     public string? GuardianName { get; set; }
+    [StringLength(50)]
     public string? GuardianContact { get; set; }
-    public string Status { get; set; } = string.Empty; // Active, Reintegrated, Transferred, Closed
+    [Required, StringLength(30)]
+    public string Status { get; set; } = string.Empty;
     public DateTime? ReintegrationDate { get; set; }
+    [StringLength(2000)]
     public string? Notes { get; set; }
     public bool IsActive { get; set; } = true;
+
+    // Additional demographic fields
+    [StringLength(500)]
+    public string? DisabilityInfo { get; set; }
+    public bool Is4PsBeneficiary { get; set; } = false;
+    public bool IsSoloParentChild { get; set; } = false;
+    public bool IsIndigenous { get; set; } = false;
+    public bool IsInformalSettler { get; set; } = false;
+    [StringLength(500)]
+    public string? AssignedSocialWorkers { get; set; }
     
     // Navigation properties
     public Safehouse? Safehouse { get; set; }
@@ -29,18 +54,27 @@ public class Resident
     public ICollection<HealthWellbeingRecord>? HealthWellbeingRecords { get; set; }
     public ICollection<InterventionPlan>? InterventionPlans { get; set; }
     public ICollection<IncidentReport>? IncidentReports { get; set; }
+    public ICollection<CaseConference>? CaseConferences { get; set; }
 }
 
 public class ProcessRecording
 {
     public int Id { get; set; }
+    [Required]
     public int ResidentId { get; set; }
+    [Required]
     public DateTime SessionDate { get; set; }
-    public string SessionType { get; set; } = string.Empty; // Counseling, Therapy, Case Conference
+    [Required, StringLength(50)]
+    public string SessionType { get; set; } = string.Empty;
+    [StringLength(100)]
     public string? CounselorName { get; set; }
+    [Required, StringLength(4000)]
     public string Summary { get; set; } = string.Empty;
+    [StringLength(2000)]
     public string? Observations { get; set; }
+    [StringLength(2000)]
     public string? ActionPlan { get; set; }
+    [StringLength(500)]
     public string? FollowUpRequired { get; set; }
     public DateTime? NextSessionDate { get; set; }
     public bool IsConfidential { get; set; } = true;
@@ -52,14 +86,23 @@ public class ProcessRecording
 public class HomeVisitation
 {
     public int Id { get; set; }
+    [Required]
     public int ResidentId { get; set; }
+    [Required]
     public DateTime VisitDate { get; set; }
-    public string VisitType { get; set; } = string.Empty; // Home Visit, Field Visit, Family Meeting
+    [Required, StringLength(50)]
+    public string VisitType { get; set; } = string.Empty;
+    [StringLength(100)]
     public string? VisitorName { get; set; }
+    [Required, StringLength(200)]
     public string Location { get; set; } = string.Empty;
+    [Required, StringLength(4000)]
     public string Summary { get; set; } = string.Empty;
+    [StringLength(2000)]
     public string? FamilyInteraction { get; set; }
+    [StringLength(2000)]
     public string? SafetyConcerns { get; set; }
+    [StringLength(2000)]
     public string? Recommendations { get; set; }
     public bool FollowUpNeeded { get; set; } = false;
     
@@ -121,6 +164,23 @@ public class InterventionPlan
     public string? Notes { get; set; }
     
     // Navigation properties
+    public Resident? Resident { get; set; }
+}
+
+public class CaseConference
+{
+    public int Id { get; set; }
+    public int ResidentId { get; set; }
+    public DateTime ConferenceDate { get; set; }
+    public string ConferenceType { get; set; } = string.Empty;
+    public string? Facilitator { get; set; }
+    public string? Attendees { get; set; }
+    public string Summary { get; set; } = string.Empty;
+    public string? Decisions { get; set; }
+    public string? ActionItems { get; set; }
+    public DateTime? NextConferenceDate { get; set; }
+    public string? Notes { get; set; }
+
     public Resident? Resident { get; set; }
 }
 

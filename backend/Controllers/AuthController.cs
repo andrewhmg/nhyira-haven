@@ -63,14 +63,16 @@ public class AuthController : ControllerBase
                 });
             }
 
-            // Create user
+            // Create user (force Donor role for self-registration)
+            var safeRole = new[] { "Donor" }.Contains(model.Role, StringComparer.OrdinalIgnoreCase)
+                ? model.Role : "Donor";
             var user = new ApplicationUser
             {
                 UserName = model.Email,
                 Email = model.Email,
                 FirstName = model.FirstName,
                 LastName = model.LastName,
-                Role = model.Role,
+                Role = safeRole,
                 EmailConfirmed = true,
                 CreatedAt = DateTime.UtcNow
             };
@@ -87,12 +89,17 @@ public class AuthController : ControllerBase
                 });
             }
 
-            // Assign role
-            if (!await _roleManager.RoleExistsAsync(model.Role))
+            // Assign role (only Donor allowed via self-registration)
+            var allowedSelfRegRoles = new[] { "Donor" };
+            var assignedRole = allowedSelfRegRoles.Contains(model.Role, StringComparer.OrdinalIgnoreCase)
+                ? model.Role
+                : "Donor";
+
+            if (!await _roleManager.RoleExistsAsync(assignedRole))
             {
-                await _roleManager.CreateAsync(new IdentityRole(model.Role));
+                await _roleManager.CreateAsync(new IdentityRole(assignedRole));
             }
-            await _userManager.AddToRoleAsync(user, model.Role);
+            await _userManager.AddToRoleAsync(user, assignedRole);
 
             // Generate token
             var token = GenerateJwtToken(user);
@@ -275,8 +282,9 @@ public class AuthController : ControllerBase
         });
     }
 
-    // GET: api/auth/test-accounts
+    // GET: api/auth/test-accounts (admin only)
     [HttpGet("test-accounts")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
     public ActionResult<object> GetTestAccounts()
     {
         // For IS 414 submission - shows test account credentials
@@ -293,8 +301,9 @@ public class AuthController : ControllerBase
         });
     }
 
-    // POST: api/auth/reset-seeded-passwords
+    // POST: api/auth/reset-seeded-passwords (admin only)
     [HttpPost("reset-seeded-passwords")]
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
     public async Task<ActionResult<AuthResponseDto>> ResetSeededPasswords()
     {
         try

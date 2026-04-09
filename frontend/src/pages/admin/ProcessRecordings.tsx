@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { getResidents } from '../../services/api';
+import { getResidents, createProcessRecording } from '../../services/api';
 import type { Resident, ProcessRecording } from '../../types/api';
 import StatusBadge from '../../components/common/StatusBadge';
 import MLInsightBadge from '../../components/ml/MLInsightBadge';
 import { predictSessionEffectiveness, type SessionEffectivenessResult } from '../../services/mlApi';
-import { Search, Plus, X, Lock } from 'lucide-react';
+import { Search, Plus, X, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
+
+const PAGE_SIZE = 15;
 
 interface RecordingWithResident extends ProcessRecording {
   residentName: string;
@@ -14,15 +16,31 @@ interface RecordingWithResident extends ProcessRecording {
 
 export default function ProcessRecordings() {
   const [recordings, setRecordings] = useState<RecordingWithResident[]>([]);
+  const [allResidents, setAllResidents] = useState<Resident[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('');
+  const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [mlEffectiveness, setMlEffectiveness] = useState<Record<number, SessionEffectivenessResult>>({});
+  const [formData, setFormData] = useState({
+    residentId: '',
+    sessionDate: new Date().toISOString().split('T')[0],
+    sessionType: '',
+    counselorName: '',
+    summary: '',
+    observations: '',
+    actionPlan: '',
+    followUpRequired: '',
+    nextSessionDate: '',
+    isConfidential: true,
+  });
+  const [formSubmitting, setFormSubmitting] = useState(false);
 
-  useEffect(() => {
+  const loadRecordings = () => {
     getResidents()
       .then((residents: Resident[]) => {
+        setAllResidents(residents);
         const all: RecordingWithResident[] = [];
         residents.forEach((r) => {
           r.processRecordings?.forEach((pr) => {
@@ -33,7 +51,6 @@ export default function ProcessRecordings() {
         setRecordings(all);
         setLoading(false);
 
-        // Fire ML predictions for recent recordings (non-blocking)
         const predictions: Record<number, SessionEffectivenessResult> = {};
         const batch = all.slice(0, 30).map(async (rec) => {
           try {
@@ -51,7 +68,36 @@ export default function ProcessRecordings() {
         Promise.allSettled(batch).then(() => setMlEffectiveness({ ...predictions }));
       })
       .catch(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => { loadRecordings(); }, []);
+
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.residentId || !formData.sessionType || !formData.summary) return;
+    setFormSubmitting(true);
+    try {
+      await createProcessRecording({
+        residentId: Number(formData.residentId),
+        sessionDate: formData.sessionDate,
+        sessionType: formData.sessionType,
+        counselorName: formData.counselorName || undefined,
+        summary: formData.summary,
+        observations: formData.observations || undefined,
+        actionPlan: formData.actionPlan || undefined,
+        followUpRequired: formData.followUpRequired || undefined,
+        nextSessionDate: formData.nextSessionDate || undefined,
+        isConfidential: formData.isConfidential,
+      });
+      setShowForm(false);
+      setFormData({ residentId: '', sessionDate: new Date().toISOString().split('T')[0], sessionType: '', counselorName: '', summary: '', observations: '', actionPlan: '', followUpRequired: '', nextSessionDate: '', isConfidential: true });
+      loadRecordings();
+    } catch {
+      alert('Failed to save recording. Ensure you have admin permissions.');
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
 
   const filtered = recordings.filter((r) => {
     const matchSearch = !search || r.residentName.toLowerCase().includes(search.toLowerCase()) || r.counselorName?.toLowerCase().includes(search.toLowerCase());
@@ -60,6 +106,8 @@ export default function ProcessRecordings() {
   });
 
   const types = [...new Set(recordings.map((r) => r.sessionType))].sort();
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const formatDate = (d: string) => { try { return format(new Date(d), 'MMM d, yyyy'); } catch { return d; } };
 
   return (
@@ -78,21 +126,27 @@ export default function ProcessRecordings() {
       {showForm && (
         <div className="nh-card p-4 mb-4" style={{ borderLeft: '4px solid var(--nh-secondary)' }}>
           <h5 className="fw-bold mb-3">New Process Recording</h5>
-          <form onSubmit={(e) => { e.preventDefault(); setShowForm(false); }}>
+          <form onSubmit={handleFormSubmit}>
             <div className="row g-3">
               <div className="col-md-6">
-                <label className="form-label small fw-semibold">Resident</label>
-                <select className="form-select form-select-sm" required>
+                <label className="form-label small fw-semibold">Resident *</label>
+                <select className="form-select form-select-sm" required value={formData.residentId}
+                  onChange={e => setFormData({ ...formData, residentId: e.target.value })}>
                   <option value="">Select resident...</option>
+                  {allResidents.filter(r => r.isActive).map(r => (
+                    <option key={r.id} value={r.id}>{r.firstName} {r.lastName} ({r.caseNumber})</option>
+                  ))}
                 </select>
               </div>
               <div className="col-md-3">
-                <label className="form-label small fw-semibold">Session Date</label>
-                <input type="date" className="form-control form-control-sm" required />
+                <label className="form-label small fw-semibold">Session Date *</label>
+                <input type="date" className="form-control form-control-sm" required value={formData.sessionDate}
+                  onChange={e => setFormData({ ...formData, sessionDate: e.target.value })} />
               </div>
               <div className="col-md-3">
-                <label className="form-label small fw-semibold">Session Type</label>
-                <select className="form-select form-select-sm" required>
+                <label className="form-label small fw-semibold">Session Type *</label>
+                <select className="form-select form-select-sm" required value={formData.sessionType}
+                  onChange={e => setFormData({ ...formData, sessionType: e.target.value })}>
                   <option value="">Select type...</option>
                   <option>Individual Counseling</option>
                   <option>Group Counseling</option>
@@ -103,37 +157,46 @@ export default function ProcessRecordings() {
               </div>
               <div className="col-md-6">
                 <label className="form-label small fw-semibold">Counselor Name</label>
-                <input type="text" className="form-control form-control-sm" placeholder="Counselor name" />
+                <input type="text" className="form-control form-control-sm" placeholder="Counselor name"
+                  value={formData.counselorName} onChange={e => setFormData({ ...formData, counselorName: e.target.value })} />
               </div>
               <div className="col-md-6">
                 <label className="form-label small fw-semibold">Next Session Date</label>
-                <input type="date" className="form-control form-control-sm" />
+                <input type="date" className="form-control form-control-sm" value={formData.nextSessionDate}
+                  onChange={e => setFormData({ ...formData, nextSessionDate: e.target.value })} />
               </div>
               <div className="col-12">
-                <label className="form-label small fw-semibold">Summary</label>
-                <textarea className="form-control form-control-sm" rows={3} required placeholder="Describe the session..." />
+                <label className="form-label small fw-semibold">Summary *</label>
+                <textarea className="form-control form-control-sm" rows={3} required placeholder="Describe the session..."
+                  value={formData.summary} onChange={e => setFormData({ ...formData, summary: e.target.value })} />
               </div>
               <div className="col-md-6">
                 <label className="form-label small fw-semibold">Observations</label>
-                <textarea className="form-control form-control-sm" rows={2} placeholder="Behavioral observations..." />
+                <textarea className="form-control form-control-sm" rows={2} placeholder="Behavioral observations..."
+                  value={formData.observations} onChange={e => setFormData({ ...formData, observations: e.target.value })} />
               </div>
               <div className="col-md-6">
                 <label className="form-label small fw-semibold">Action Plan</label>
-                <textarea className="form-control form-control-sm" rows={2} placeholder="Next steps..." />
+                <textarea className="form-control form-control-sm" rows={2} placeholder="Next steps..."
+                  value={formData.actionPlan} onChange={e => setFormData({ ...formData, actionPlan: e.target.value })} />
               </div>
               <div className="col-md-6">
                 <label className="form-label small fw-semibold">Follow-Up Required</label>
-                <input type="text" className="form-control form-control-sm" placeholder="e.g. Schedule family session" />
+                <input type="text" className="form-control form-control-sm" placeholder="e.g. Schedule family session"
+                  value={formData.followUpRequired} onChange={e => setFormData({ ...formData, followUpRequired: e.target.value })} />
               </div>
               <div className="col-md-6 d-flex align-items-end">
                 <div className="form-check">
-                  <input type="checkbox" className="form-check-input" id="confidential" />
+                  <input type="checkbox" className="form-check-input" id="confidential" checked={formData.isConfidential}
+                    onChange={e => setFormData({ ...formData, isConfidential: e.target.checked })} />
                   <label className="form-check-label small" htmlFor="confidential">Mark as Confidential</label>
                 </div>
               </div>
             </div>
             <div className="mt-3 d-flex gap-2">
-              <button type="submit" className="btn btn-primary btn-sm">Save Recording</button>
+              <button type="submit" className="btn btn-primary btn-sm" disabled={formSubmitting}>
+                {formSubmitting ? 'Saving...' : 'Save Recording'}
+              </button>
               <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setShowForm(false)}>Cancel</button>
             </div>
           </form>
@@ -165,7 +228,7 @@ export default function ProcessRecordings() {
         <div className="text-center py-5 text-muted">No recordings found.</div>
       ) : (
         <div className="d-flex flex-column gap-2 mt-1">
-          {filtered.slice(0, 50).map((r) => (
+          {paginated.map((r) => (
             <div key={r.id} className="nh-card p-3">
               <div className="d-flex justify-content-between align-items-start">
                 <div className="flex-grow-1">
@@ -192,6 +255,16 @@ export default function ProcessRecordings() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="d-flex justify-content-between align-items-center mt-3">
+          <span className="text-muted small">Page {page} of {totalPages}</span>
+          <div className="d-flex gap-1">
+            <button className="btn btn-sm btn-outline-secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}><ChevronLeft size={14} /></button>
+            <button className="btn btn-sm btn-outline-secondary" disabled={page >= totalPages} onClick={() => setPage(page + 1)}><ChevronRight size={14} /></button>
+          </div>
         </div>
       )}
     </div>

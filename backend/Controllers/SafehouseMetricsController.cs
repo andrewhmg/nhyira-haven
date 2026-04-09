@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NhyiraHaven.Data;
@@ -7,6 +8,7 @@ namespace NhyiraHaven.Controllers;
 
 [ApiController]
 [Route("api/safehouse-metrics")]
+[Authorize]
 public class SafehouseMetricsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -33,6 +35,7 @@ public class SafehouseMetricsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<SafehouseMonthlyMetric>> PostSafehouseMetric(SafehouseMonthlyMetric metric)
     {
         _context.SafehouseMonthlyMetrics.Add(metric);

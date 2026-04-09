@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { getSupporter, getDonations } from '../../services/api';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { getSupporter, getDonations, deleteSupporter } from '../../services/api';
 import type { Supporter, Donation } from '../../types/api';
 import StatusBadge from '../../components/common/StatusBadge';
-import { ArrowLeft, AlertTriangle, Mail, Phone, Globe, Calendar } from 'lucide-react';
+import ConfirmModal from '../../components/common/ConfirmModal';
+import { ArrowLeft, AlertTriangle, Mail, Phone, Globe, Calendar, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import MLInsightPanel, { MLMetric, MLFactorBar } from '../../components/ml/MLInsightPanel';
@@ -11,9 +12,11 @@ import { getDonorMLInsights, type ChurnRiskResult, type DonorTierResult, type Do
 
 export default function DonorDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [supporter, setSupporter] = useState<Supporter | null>(null);
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDelete, setShowDelete] = useState(false);
   const [mlInsights, setMlInsights] = useState<{ churn: ChurnRiskResult | null; tier: DonorTierResult | null; ltv: DonorLTVResult | null } | null>(null);
   const [mlLoading, setMlLoading] = useState(true);
   const [mlError, setMlError] = useState(false);
@@ -65,9 +68,14 @@ export default function DonorDetail() {
 
   return (
     <div>
-      <Link to="/admin/donors" className="text-decoration-none small d-inline-flex align-items-center gap-1 mb-3" style={{ color: 'var(--nh-text-muted)' }}>
-        <ArrowLeft size={14} /> Back to Donors
-      </Link>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <Link to="/admin/donors" className="text-decoration-none small d-inline-flex align-items-center gap-1" style={{ color: 'var(--nh-text-muted)' }}>
+          <ArrowLeft size={14} /> Back to Donors
+        </Link>
+        <button className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" onClick={() => setShowDelete(true)}>
+          <Trash2 size={14} /> Delete
+        </button>
+      </div>
 
       <div className="nh-card p-4 mb-4">
         <div className="d-flex gap-3 align-items-start flex-wrap">
@@ -230,6 +238,23 @@ export default function DonorDetail() {
           </div>
         )}
       </div>
+
+      {showDelete && supporter && (
+        <ConfirmModal
+          title="Delete Supporter"
+          message={`Are you sure you want to delete ${supporter.firstName} ${supporter.lastName}? This action cannot be undone.`}
+          confirmLabel="Delete"
+          onConfirm={async () => {
+            try {
+              await deleteSupporter(supporter.id);
+              navigate('/admin/donors');
+            } catch {
+              alert('Failed to delete supporter.');
+            }
+          }}
+          onCancel={() => setShowDelete(false)}
+        />
+      )}
     </div>
   );
 }

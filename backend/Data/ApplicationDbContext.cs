@@ -63,6 +63,15 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .WithOne(d => d.Supporter)
             .HasForeignKey(d => d.SupporterId);
 
+        modelBuilder.Entity<Supporter>()
+            .HasOne(s => s.User)
+            .WithMany()
+            .HasForeignKey(s => s.UserId)
+            .IsRequired(false);
+
+        modelBuilder.Entity<Supporter>()
+            .HasIndex(s => s.UserId);
+
         // Donation relationships
         modelBuilder.Entity<Donation>()
             .HasMany(d => d.InKindDonationItems)

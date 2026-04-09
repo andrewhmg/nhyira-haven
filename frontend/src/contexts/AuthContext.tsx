@@ -10,7 +10,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; mfa?: MfaRequired }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; role?: string; mfa?: MfaRequired }>;
   verifyMfa: (mfaToken: string, code: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('token', data.token);
         setToken(data.token);
         setUser(data.user);
-        return { success: true };
+        return { success: true, role: data.user?.role };
       }
 
       return { success: false, error: data.message || 'Login failed' };

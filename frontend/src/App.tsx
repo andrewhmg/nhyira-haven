@@ -1,11 +1,13 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import PublicLayout from './components/PublicLayout';
 import AdminLayout from './components/AdminLayout';
+import DonorLayout from './components/DonorLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import Landing from './pages/Landing';
 import ImpactDashboard from './pages/ImpactDashboard';
 import Login from './pages/Login';
+import DonorLogin from './pages/DonorLogin';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -19,6 +21,8 @@ import SafehouseManagement from './pages/admin/SafehouseManagement';
 import Reports from './pages/admin/Reports';
 import MfaSetup from './pages/admin/MfaSetup';
 
+import DonorDashboard from './pages/donor/DonorDashboard';
+
 function App() {
   return (
     <Router>
@@ -27,6 +31,7 @@ function App() {
           <Route index element={<Landing />} />
           <Route path="impact" element={<ImpactDashboard />} />
           <Route path="login" element={<Login />} />
+          <Route path="donor-login" element={<DonorLogin />} />
           <Route path="privacy" element={<PrivacyPolicy />} />
         </Route>
 
@@ -48,6 +53,17 @@ function App() {
           <Route path="safehouses" element={<SafehouseManagement />} />
           <Route path="reports" element={<Reports />} />
           <Route path="mfa-setup" element={<MfaSetup />} />
+        </Route>
+
+        <Route
+          path="/donor"
+          element={
+            <ProtectedRoute>
+              <DonorLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<DonorDashboard />} />
         </Route>
       </Routes>
     </Router>

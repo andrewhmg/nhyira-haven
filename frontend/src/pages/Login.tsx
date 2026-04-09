@@ -32,7 +32,7 @@ export default function Login() {
     setLoading(true);
     const result = await login(email, password);
     if (result.success) {
-      navigate('/admin');
+      navigate(result.role === 'Donor' ? '/donor' : '/admin');
     } else if (result.mfa) {
       setMfaRequired(true);
       setMfaToken(result.mfa.mfaToken);

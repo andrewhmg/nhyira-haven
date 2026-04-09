@@ -1,9 +1,10 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import type { ReactNode } from 'react';
 
 export default function ProtectedRoute({ children }: { children: ReactNode }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -20,6 +21,16 @@ export default function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Redirect donors away from admin pages
+  if (user?.role === 'Donor' && location.pathname.startsWith('/admin')) {
+    return <Navigate to="/donor" replace />;
+  }
+
+  // Redirect admin/staff away from donor portal
+  if (user?.role !== 'Donor' && location.pathname.startsWith('/donor')) {
+    return <Navigate to="/admin" replace />;
   }
 
   return <>{children}</>;

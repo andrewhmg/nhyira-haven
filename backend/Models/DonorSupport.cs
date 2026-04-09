@@ -65,7 +65,11 @@ public class Supporter
     public DateTime? LastDonationDate { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsAtRisk { get; set; } = false; // For churn prediction
-    
+
+    // Link to Identity user account for donor login
+    public string? UserId { get; set; }
+    public ApplicationUser? User { get; set; }
+
     // Navigation properties
     public ICollection<Donation>? Donations { get; set; }
 }

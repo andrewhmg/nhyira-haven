@@ -36,6 +36,9 @@ export default function PublicLayout() {
                 {link.label}
               </Link>
             ))}
+            <Link to="/donor-login" className="btn btn-outline-primary btn-sm nav-cta">
+              Donor Login
+            </Link>
             {isAuthenticated ? (
               <Link to="/admin" className="btn btn-primary btn-sm nav-cta">
                 Staff Portal
@@ -69,6 +72,7 @@ export default function PublicLayout() {
                 <Link to="/">Home</Link>
                 <Link to="/impact">Our Impact</Link>
                 <Link to="/privacy">Privacy Policy</Link>
+                <Link to="/donor-login">Donor Login</Link>
                 <Link to="/login">Staff Login</Link>
               </div>
             </div>

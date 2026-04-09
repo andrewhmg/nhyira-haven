@@ -279,7 +279,7 @@ using (var scope = app.Services.CreateScope())
 
         // Apply migrations automatically
         Console.WriteLine("Checking database...");
-        context.Database.EnsureCreated();
+        context.Database.Migrate();
         Console.WriteLine("Database ready");
 
         // Only seed if no data exists
@@ -316,6 +316,10 @@ using (var scope = app.Services.CreateScope())
         {
             Console.WriteLine("Residents already exist - skipping data seed");
         }
+
+        // Create donor login accounts for all supporters
+        await DbInitializer.SeedDonorAccountsAsync(services);
+        Console.WriteLine("Donor accounts synced");
     }
     catch (Exception ex)
     {

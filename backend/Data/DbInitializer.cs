@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using NhyiraHaven.Data;
 using NhyiraHaven.Models;
 
@@ -110,6 +111,62 @@ public static class DbInitializer
                 // Set up authenticator key so MFA actually works
                 await userManager.ResetAuthenticatorKeyAsync(mfaUser);
                 await userManager.SetTwoFactorEnabledAsync(mfaUser, true);
+            }
+        }
+
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Creates a Donor user account for every Supporter that doesn't have one yet,
+    /// and links the Supporter.UserId to the new account.
+    /// Password = FirstNameLastName2026! (e.g. DavidMensah2026!)
+    /// </summary>
+    public static async Task SeedDonorAccountsAsync(IServiceProvider serviceProvider)
+    {
+        var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
+
+        if (!await roleManager.RoleExistsAsync("Donor"))
+        {
+            await roleManager.CreateAsync(new IdentityRole("Donor"));
+        }
+
+        // Get all supporters that don't yet have a linked user account
+        var unlinkedSupporters = await context.Supporters
+            .Where(s => s.UserId == null)
+            .ToListAsync();
+
+        foreach (var supporter in unlinkedSupporters)
+        {
+            // Check if a user with this email already exists (e.g. the seeded donor@example.com)
+            var existingUser = await userManager.FindByEmailAsync(supporter.Email);
+            if (existingUser != null)
+            {
+                // Link existing user account to this supporter
+                supporter.UserId = existingUser.Id;
+                continue;
+            }
+
+            // Create a new Donor user account
+            var password = $"{supporter.FirstName}{supporter.LastName}2026!";
+            var newUser = new ApplicationUser
+            {
+                UserName = supporter.Email,
+                Email = supporter.Email,
+                FirstName = supporter.FirstName,
+                LastName = supporter.LastName,
+                Role = "Donor",
+                EmailConfirmed = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var result = await userManager.CreateAsync(newUser, password);
+            if (result.Succeeded)
+            {
+                await userManager.AddToRoleAsync(newUser, "Donor");
+                supporter.UserId = newUser.Id;
             }
         }
 

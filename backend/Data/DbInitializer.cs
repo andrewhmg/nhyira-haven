@@ -101,13 +101,15 @@ public static class DbInitializer
                 LastName = "Admin",
                 Role = "Admin",
                 EmailConfirmed = true,
-                TwoFactorEnabled = true, // MFA enabled
                 CreatedAt = DateTime.UtcNow
             };
             var result = await userManager.CreateAsync(mfaUser, "NhyiraHaven2026!");
             if (result.Succeeded)
             {
                 await userManager.AddToRoleAsync(mfaUser, "Admin");
+                // Set up authenticator key so MFA actually works
+                await userManager.ResetAuthenticatorKeyAsync(mfaUser);
+                await userManager.SetTwoFactorEnabledAsync(mfaUser, true);
             }
         }
 

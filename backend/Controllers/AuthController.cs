@@ -148,6 +148,19 @@ public class AuthController : ControllerBase
                 });
             }
 
+            if (result.RequiresTwoFactor)
+            {
+                // User has MFA enabled — issue a short-lived MFA token
+                var mfaToken = GenerateMfaToken(user);
+                return Ok(new AuthResponseDto
+                {
+                    Success = false,
+                    RequiresMfa = true,
+                    MfaToken = mfaToken,
+                    Message = "MFA verification required."
+                });
+            }
+
             if (!result.Succeeded)
             {
                 return Unauthorized(new AuthResponseDto
@@ -338,6 +351,234 @@ public class AuthController : ControllerBase
                 Message = $"Failed to reset passwords: {ex.Message}"
             });
         }
+    }
+
+    // POST: api/auth/mfa/setup
+    [HttpPost("mfa/setup")]
+    public async Task<ActionResult<MfaSetupResponseDto>> MfaSetup()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized(new MfaSetupResponseDto { Success = false, Message = "Not authenticated." });
+        }
+
+        // Reset the authenticator key so the user gets a fresh one
+        await _userManager.ResetAuthenticatorKeyAsync(user);
+        var unformattedKey = await _userManager.GetAuthenticatorKeyAsync(user);
+
+        if (string.IsNullOrEmpty(unformattedKey))
+        {
+            return StatusCode(500, new MfaSetupResponseDto { Success = false, Message = "Failed to generate authenticator key." });
+        }
+
+        var email = user.Email ?? "user";
+        var qrCodeUri = $"otpauth://totp/NhyiraHaven:{email}?secret={unformattedKey}&issuer=NhyiraHaven&digits=6";
+
+        return Ok(new MfaSetupResponseDto
+        {
+            Success = true,
+            Message = "Scan the QR code with your authenticator app, then verify with a code.",
+            SharedKey = FormatKey(unformattedKey),
+            QrCodeUri = qrCodeUri
+        });
+    }
+
+    // POST: api/auth/mfa/verify-setup
+    [HttpPost("mfa/verify-setup")]
+    public async Task<ActionResult<AuthResponseDto>> MfaVerifySetup([FromBody] MfaVerifyDto model)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized(new AuthResponseDto { Success = false, Message = "Not authenticated." });
+        }
+
+        var isValid = await _userManager.VerifyTwoFactorTokenAsync(
+            user,
+            _userManager.Options.Tokens.AuthenticatorTokenProvider,
+            model.Code);
+
+        if (!isValid)
+        {
+            return BadRequest(new AuthResponseDto { Success = false, Message = "Invalid verification code. Please try again." });
+        }
+
+        await _userManager.SetTwoFactorEnabledAsync(user, true);
+        var recoveryCodes = await _userManager.GenerateNewTwoFactorRecoveryCodesAsync(user, 5);
+
+        return Ok(new AuthResponseDto
+        {
+            Success = true,
+            Message = "MFA has been enabled successfully.",
+            Errors = recoveryCodes // Reusing Errors field to return recovery codes
+        });
+    }
+
+    // POST: api/auth/mfa/verify
+    [HttpPost("mfa/verify")]
+    public async Task<ActionResult<AuthResponseDto>> MfaVerify([FromBody] MfaLoginDto model)
+    {
+        try
+        {
+            // Validate the short-lived MFA token to get the user
+            var userId = ValidateMfaToken(model.MfaToken);
+            if (userId == null)
+            {
+                return Unauthorized(new AuthResponseDto { Success = false, Message = "Invalid or expired MFA session. Please login again." });
+            }
+
+            var user = await _userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                return Unauthorized(new AuthResponseDto { Success = false, Message = "User not found." });
+            }
+
+            // Try TOTP code first, then recovery code
+            var isValid = await _userManager.VerifyTwoFactorTokenAsync(
+                user,
+                _userManager.Options.Tokens.AuthenticatorTokenProvider,
+                model.Code);
+
+            if (!isValid)
+            {
+                // Try as a recovery code
+                var recoveryResult = await _userManager.RedeemTwoFactorRecoveryCodeAsync(user, model.Code);
+                if (!recoveryResult.Succeeded)
+                {
+                    return Unauthorized(new AuthResponseDto { Success = false, Message = "Invalid verification code." });
+                }
+            }
+
+            // Update last login
+            user.LastLogin = DateTime.UtcNow;
+            await _userManager.UpdateAsync(user);
+
+            // Generate full JWT
+            var token = GenerateJwtToken(user);
+            var userDto = await GetUserDto(user);
+
+            return Ok(new AuthResponseDto
+            {
+                Success = true,
+                Message = "Login successful.",
+                Token = token,
+                User = userDto
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "MFA verification error");
+            return StatusCode(500, new AuthResponseDto { Success = false, Message = "An error occurred during MFA verification." });
+        }
+    }
+
+    // POST: api/auth/mfa/disable
+    [HttpPost("mfa/disable")]
+    public async Task<ActionResult<AuthResponseDto>> MfaDisable([FromBody] MfaVerifyDto model)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized(new AuthResponseDto { Success = false, Message = "Not authenticated." });
+        }
+
+        var isValid = await _userManager.VerifyTwoFactorTokenAsync(
+            user,
+            _userManager.Options.Tokens.AuthenticatorTokenProvider,
+            model.Code);
+
+        if (!isValid)
+        {
+            return BadRequest(new AuthResponseDto { Success = false, Message = "Invalid verification code." });
+        }
+
+        await _userManager.SetTwoFactorEnabledAsync(user, false);
+        await _userManager.ResetAuthenticatorKeyAsync(user);
+
+        return Ok(new AuthResponseDto { Success = true, Message = "MFA has been disabled." });
+    }
+
+    // POST: api/auth/mfa/status
+    [HttpGet("mfa/status")]
+    public async Task<ActionResult> MfaStatus()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized(new { enabled = false });
+        }
+
+        return Ok(new { enabled = user.TwoFactorEnabled });
+    }
+
+    private string GenerateMfaToken(ApplicationUser user)
+    {
+        var jwtKey = _configuration["Jwt:Key"] ?? "NhyiraHaven2026SecretKeyForDevelopmentOnly!";
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim("mfa_user_id", user.Id),
+            new Claim("purpose", "mfa")
+        };
+
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"] ?? "NhyiraHaven",
+            audience: _configuration["Jwt:Audience"] ?? "NhyiraHaven",
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(5), // Short-lived
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private string? ValidateMfaToken(string mfaToken)
+    {
+        var jwtKey = _configuration["Jwt:Key"] ?? "NhyiraHaven2026SecretKeyForDevelopmentOnly!";
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+
+        try
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var principal = handler.ValidateToken(mfaToken, new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = _configuration["Jwt:Issuer"] ?? "NhyiraHaven",
+                ValidAudience = _configuration["Jwt:Audience"] ?? "NhyiraHaven",
+                IssuerSigningKey = key
+            }, out _);
+
+            var purposeClaim = principal.FindFirst("purpose")?.Value;
+            if (purposeClaim != "mfa") return null;
+
+            return principal.FindFirst("mfa_user_id")?.Value;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private static string FormatKey(string unformattedKey)
+    {
+        var result = new StringBuilder();
+        int currentPosition = 0;
+        while (currentPosition + 4 < unformattedKey.Length)
+        {
+            result.Append(unformattedKey.AsSpan(currentPosition, 4)).Append(' ');
+            currentPosition += 4;
+        }
+        if (currentPosition < unformattedKey.Length)
+        {
+            result.Append(unformattedKey.AsSpan(currentPosition));
+        }
+        return result.ToString().Trim();
     }
 
     private string GenerateJwtToken(ApplicationUser user)

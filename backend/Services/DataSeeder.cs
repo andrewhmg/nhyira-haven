@@ -82,7 +82,7 @@ public class DataSeeder
                 try
                 {
                     await _context.Database.ExecuteSqlRawAsync(
-                        $"SELECT setval(pg_get_serial_sequence('\"{table}\"', 'Id'), COALESCE((SELECT MAX(\"Id\") FROM \"{table}\"), 0) + 1, false)");
+                        "SELECT setval(pg_get_serial_sequence('\"" + table + "\"', 'Id'), COALESCE((SELECT MAX(\"Id\") FROM \"" + table + "\"), 0) + 1, false)");
                 }
                 catch { /* Table might not exist or have no sequence */ }
             }

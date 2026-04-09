@@ -333,21 +333,6 @@ if (args.Length > 0 && args[0] == "seed")
     return;
 }
 
-app.Run();
-    Console.WriteLine("Application started successfully");
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"FATAL ERROR: {ex.GetType().Name}");
-    Console.WriteLine($"Message: {ex.Message}");
-    Console.WriteLine($"Stack trace:\n{ex.StackTrace}");
-    if (ex.InnerException != null)
-    {
-        Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
-    }
-    throw;
-}
-
 // Debug endpoint - remove after testing
 app.MapGet("/api/debug/csv-path", () => {
     var candidates = new[]
@@ -364,3 +349,18 @@ app.MapGet("/api/debug/csv-path", () => {
     }
     return Results.NotFound(new { message = "CSV path not found", candidates });
 });
+
+app.Run();
+    Console.WriteLine("Application started successfully");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"FATAL ERROR: {ex.GetType().Name}");
+    Console.WriteLine($"Message: {ex.Message}");
+    Console.WriteLine($"Stack trace:\n{ex.StackTrace}");
+    if (ex.InnerException != null)
+    {
+        Console.WriteLine($"Inner exception: {ex.InnerException.Message}");
+    }
+    throw;
+}

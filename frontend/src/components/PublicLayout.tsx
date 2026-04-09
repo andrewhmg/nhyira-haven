@@ -1,7 +1,7 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { CookieConsent } from './CookieConsent';
-import { Heart } from 'lucide-react';
+import nhyiraLogo from '../assets/nhyira-haven-logo.svg';
 
 export default function PublicLayout() {
   const { isAuthenticated } = useAuth();
@@ -20,8 +20,8 @@ export default function PublicLayout() {
       <nav className="public-nav sticky-top" aria-label="Main navigation">
         <div className="container d-flex justify-content-between align-items-center">
           <Link to="/" className="nav-brand d-flex align-items-center gap-2">
-            <Heart size={24} fill="var(--nh-primary)" stroke="var(--nh-primary)" />
-            Nhyira Haven
+            <img src={nhyiraLogo} alt="Nhyira Haven" className="brand-logo brand-logo--public" />
+            <span>Nhyira Haven</span>
           </Link>
           <div className="d-flex align-items-center gap-3">
             {navLinks.map((link) => (
@@ -33,7 +33,6 @@ export default function PublicLayout() {
                 {link.label}
               </Link>
             ))}
-            <Link to="/privacy" className="nav-link px-2">Privacy</Link>
             {isAuthenticated ? (
               <Link to="/admin" className="btn btn-primary btn-sm">
                 Staff Portal

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 220" role="img" aria-labelledby="logoTitle logoDesc">
+  <title id="logoTitle">Nhyira Haven logo mark</title>
+  <desc id="logoDesc">A sheltering arch over a rising sun, representing safety and hope.</desc>
+
+  <path d="M85 130 C70 98, 78 58, 112 42" stroke="#0F6E56" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M275 130 C290 98, 282 58, 248 42" stroke="#0F6E56" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M112 42 C130 28, 148 22, 180 20 C212 22, 230 28, 248 42" stroke="#0F6E56" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <line x1="72" y1="136" x2="288" y2="136" stroke="#0F6E56" stroke-width="4" stroke-linecap="round"/>
+
+  <path d="M138 136 A 42 42 0 0 1 222 136" stroke="#BA7517" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <circle cx="180" cy="136" r="17" fill="#EF9F27"/>
+  <circle cx="180" cy="136" r="10.5" fill="#FAC775"/>
+
+  <line x1="180" y1="115" x2="180" y2="106" stroke="#BA7517" stroke-width="3" stroke-linecap="round"/>
+  <line x1="166" y1="119" x2="159" y2="111" stroke="#BA7517" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="194" y1="119" x2="201" y2="111" stroke="#BA7517" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="158" y1="130" x2="148" y2="126" stroke="#BA7517" stroke-width="2.25" stroke-linecap="round"/>
+  <line x1="202" y1="130" x2="212" y2="126" stroke="#BA7517" stroke-width="2.25" stroke-linecap="round"/>
+
+  <polygon points="116,136 122,130 128,136 122,142" fill="#BA7517"/>
+  <polygon points="232,136 238,130 244,136 238,142" fill="#BA7517"/>
+</svg>

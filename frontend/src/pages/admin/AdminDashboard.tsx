@@ -98,13 +98,13 @@ export default function AdminDashboard() {
   })) ?? [];
 
   return (
-    <div>
-      <div className="d-flex justify-content-between align-items-center mb-4">
+    <div className="dashboard-shell">
+      <div className="d-flex justify-content-between align-items-start align-items-md-center mb-4 flex-column flex-md-row gap-3">
         <div>
           <h2 className="mb-1">Dashboard</h2>
           <p className="text-muted mb-0 small">Overview of operations and key metrics</p>
         </div>
-        <div className="d-flex gap-2">
+        <div className="d-flex gap-2 flex-wrap">
           <Link to="/admin/residents" className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1">
             <Plus size={14} /> Add Resident
           </Link>
@@ -115,7 +115,8 @@ export default function AdminDashboard() {
       </div>
 
       {/* KPI Row */}
-      <div className="row g-3 mb-4">
+      <div className="dashboard-group-title">Core Metrics</div>
+      <div className="row g-3 mb-5">
         <div className="col-6 col-lg-3">
           <KPICard
             label="Active Residents"
@@ -152,12 +153,10 @@ export default function AdminDashboard() {
 
       {/* ML Intelligence Row */}
       {!mlLoading && (mlChurnHighCount !== null || mlRedRiskCount !== null || mlNearReintegration !== null) && (
-        <div className="row g-3 mb-4">
-          <div className="col-12">
-            <div className="d-flex align-items-center gap-2 mb-2">
-              <Brain size={14} style={{ color: '#8B5CF6' }} />
-              <span className="small fw-semibold" style={{ color: '#8B5CF6' }}>ML-Powered Insights</span>
-            </div>
+        <div className="row g-3 mb-5">
+          <div className="col-12 d-flex align-items-center gap-2">
+            <Brain size={14} style={{ color: '#8B5CF6' }} />
+            <span className="dashboard-group-title mb-0" style={{ color: '#8B5CF6' }}>ML-Powered Insights</span>
           </div>
           {mlChurnHighCount !== null && (
             <div className="col-6 col-lg-4">
@@ -192,17 +191,17 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      <div className="row g-4">
+      <div className="row g-4 g-xl-5">
         {/* Left column */}
         <div className="col-lg-8">
           {/* Needs Attention */}
           {overview && (overview.recentIncidents.length > 0 || (overview.supporters.atRisk > 0)) && (
-            <div className="nh-card p-3 mb-4" style={{ borderLeft: '4px solid var(--nh-danger)' }}>
+            <div className="nh-card soft-panel p-4 mb-4" style={{ borderLeft: '4px solid var(--nh-danger)' }}>
               <h6 className="fw-bold mb-2 d-flex align-items-center gap-2">
                 <AlertTriangle size={16} className="text-danger" /> Needs Attention
               </h6>
               {overview.supporters.atRisk > 0 && (
-                <div className="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div className="d-flex justify-content-between align-items-center py-2">
                   <span className="small">{overview.supporters.atRisk} donors at risk of lapsing</span>
                   <Link to="/admin/donors" className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1">
                     <Eye size={12} /> View
@@ -210,7 +209,7 @@ export default function AdminDashboard() {
                 </div>
               )}
               {overview.recentIncidents.slice(0, 3).map((inc) => (
-                <div key={inc.id} className="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div key={inc.id} className="d-flex justify-content-between align-items-center py-2">
                   <div>
                     <span className="small fw-semibold">{inc.residentName}</span>
                     <span className="text-muted small ms-2">{inc.incidentType}</span>
@@ -222,7 +221,7 @@ export default function AdminDashboard() {
           )}
 
           {/* Donations Chart */}
-          <div className="nh-card p-4 mb-4">
+          <div className="nh-card soft-panel p-4 mb-4">
             <h6 className="fw-bold mb-3">Donations by Month</h6>
             {donationChart.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
@@ -243,14 +242,14 @@ export default function AdminDashboard() {
         {/* Right column */}
         <div className="col-lg-4">
           {/* Recent Donations */}
-          <div className="nh-card p-3 mb-4">
+          <div className="nh-card soft-panel p-4 mb-4">
             <h6 className="fw-bold mb-3">Recent Donations</h6>
             {overview?.donations.recent.length === 0 ? (
               <p className="text-muted small">No recent donations</p>
             ) : (
-              <div className="d-flex flex-column gap-2">
+              <div className="d-flex flex-column gap-1">
                 {overview?.donations.recent.slice(0, 5).map((d) => (
-                  <div key={d.id} className="d-flex justify-content-between align-items-center py-1 border-bottom">
+                  <div key={d.id} className="d-flex justify-content-between align-items-center py-2">
                     <div>
                       <div className="small fw-semibold">{d.supporterName}</div>
                       <div className="text-muted" style={{ fontSize: '0.75rem' }}>
@@ -268,7 +267,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Residents by Safehouse */}
-          <div className="nh-card p-3 mb-4">
+          <div className="nh-card soft-panel p-4 mb-4">
             <h6 className="fw-bold mb-3">Residents by Safehouse</h6>
             {safehouseChart.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
@@ -296,7 +295,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Quick Links */}
-          <div className="nh-card p-3">
+          <div className="nh-card soft-panel p-4">
             <h6 className="fw-bold mb-3">Quick Actions</h6>
             <div className="d-flex flex-column gap-2">
               <Link to="/admin/residents" className="btn btn-sm btn-outline-primary text-start">

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { Heart, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import nhyiraLogo from '../assets/nhyira-haven-logo.svg';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -28,15 +29,16 @@ export default function Login() {
 
   return (
     <div
-      className="d-flex align-items-center justify-content-center"
+      className="d-flex align-items-center justify-content-center public-page"
       style={{ minHeight: 'calc(100vh - 200px)', padding: '2rem 0' }}
     >
       <div style={{ maxWidth: 420, width: '100%', padding: '0 1rem' }}>
         <div className="nh-card p-4 p-md-5 shadow-sm">
           <div className="text-center mb-4">
-            <Heart size={36} fill="var(--nh-primary)" stroke="var(--nh-primary)" className="mb-2" />
-            <h1 className="h3 fw-bold" style={{ color: 'var(--nh-primary)' }}>Nhyira Haven</h1>
-            <p className="text-muted small">Staff Portal Login</p>
+            <img src={nhyiraLogo} alt="Nhyira Haven" className="brand-logo brand-logo--admin mx-auto mb-2" />
+            <p className="section-kicker">Staff Portal</p>
+            <h1 className="h3 fw-bold section-title" style={{ color: 'var(--nh-primary)' }}>Nhyira Haven</h1>
+            <p className="text-muted small type-body-sm">Staff portal login</p>
           </div>
 
           {error && (

@@ -56,11 +56,12 @@ export default function ImpactDashboard() {
   })) ?? [];
 
   return (
-    <div>
+    <div className="public-page">
       <section className="hero-section" style={{ padding: '3rem 0' }}>
         <div className="container">
-          <h1 style={{ fontSize: '2.5rem' }}>Our Impact</h1>
-          <p>Transparency and accountability. See how your support transforms lives.</p>
+          <p className="section-kicker">Impact Report</p>
+          <h1 className="section-title">Our Impact</h1>
+          <p className="section-subtitle type-body-md">Transparency and accountability. See how your support transforms lives.</p>
         </div>
       </section>
 
@@ -125,7 +126,8 @@ export default function ImpactDashboard() {
           </div>
 
           <div className="mb-5">
-            <h4 className="fw-bold mb-3">Our Safehouses</h4>
+            <p className="section-kicker">Capacity Snapshot</p>
+            <h3 className="section-title fw-bold">Our Safehouses</h3>
             <div className="row g-3">
               {safehouses.slice(0, 6).map((sh) => {
                 const pct = sh.capacity > 0 ? Math.round((sh.currentResidents / sh.capacity) * 100) : 0;
@@ -175,8 +177,9 @@ export default function ImpactDashboard() {
           )}
 
           <div className="text-center py-4" style={{ background: 'rgba(184,92,56,0.05)', borderRadius: 12 }}>
-            <h3>Want to Help?</h3>
-            <p className="text-muted mb-3">Your support directly funds shelter, education, and counseling for survivors.</p>
+            <p className="section-kicker">Take Action</p>
+            <h3 className="section-title">Want to Help?</h3>
+            <p className="text-muted mb-3 type-body-sm">Your support directly funds shelter, education, and counseling for survivors.</p>
             <Link to="/login" className="btn btn-primary px-4">Get Involved</Link>
           </div>
         </div>

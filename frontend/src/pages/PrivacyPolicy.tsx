@@ -2,16 +2,17 @@ import { Link } from 'react-router-dom';
 
 function PrivacyPolicy() {
   return (
-    <div className="container py-5">
+    <div className="container py-5 public-page">
       <div className="row justify-content-center">
         <div className="col-lg-8">
-          <h1 className="mb-4">Privacy Policy</h1>
+          <p className="section-kicker">Legal</p>
+          <h1 className="section-title mb-4">Privacy Policy</h1>
           <p className="text-muted mb-4">
             <strong>Last Updated:</strong> April 6, 2026
           </p>
 
           {/* Introduction */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>1. Introduction</h2>
             <p>
               <strong>Nhyira Haven</strong> ("we", "our", or "us") is committed to protecting your privacy. 
@@ -25,7 +26,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* Data Controller */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>2. Data Controller</h2>
             <p>
               <strong>Data Controller:</strong> Nhyira Haven<br />
@@ -39,7 +40,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* Personal Data Collected */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>3. Personal Data We Collect</h2>
             
             <h5>3.1 Information You Provide</h5>
@@ -59,7 +60,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* Legal Basis for Processing */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>4. Legal Basis for Processing (GDPR Article 6)</h2>
             <p>We process your personal data under the following legal bases:</p>
             <ul>
@@ -72,7 +73,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* Purpose of Processing */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>5. How We Use Your Information</h2>
             <ul>
               <li>Provide and manage user accounts and access</li>
@@ -87,7 +88,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* Data Retention */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>6. Data Retention</h2>
             <p>We retain personal data only as long as necessary:</p>
             <ul>
@@ -100,7 +101,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* Your Rights */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>7. Your Rights Under GDPR</h2>
             <p>You have the following rights regarding your personal data:</p>
             <ul>
@@ -119,7 +120,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* Data Sharing */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>8. Data Sharing and Disclosure</h2>
             <p>We do not sell your personal data. We may share data with:</p>
             <ul>
@@ -130,7 +131,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* International Transfers */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>9. International Data Transfers</h2>
             <p>
               Your data may be transferred and stored on servers located outside your country. 
@@ -144,7 +145,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* Security */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>10. Data Security</h2>
             <p>We implement appropriate technical and organizational measures to protect your data:</p>
             <ul>
@@ -157,7 +158,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* Cookies */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>11. Cookie Policy</h2>
             <p>We use cookies and similar technologies to:</p>
             
@@ -189,7 +190,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* Children's Privacy */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>12. Children's Privacy</h2>
             <p>
               Our services are designed for staff, administrators, and adult donors. 
@@ -199,7 +200,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* Data Protection Officer */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>13. Data Protection Officer</h2>
             <p>
               For GDPR-related inquiries, you may contact our Data Protection Officer:
@@ -210,7 +211,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* Supervisory Authority */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>14. Right to Lodge a Complaint</h2>
             <p>
               You have the right to lodge a complaint with a supervisory authority if you believe 
@@ -220,7 +221,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* Updates */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>15. Changes to This Policy</h2>
             <p>
               We may update this Privacy Policy from time to time. We will notify you of any 
@@ -230,7 +231,7 @@ function PrivacyPolicy() {
           </section>
 
           {/* Contact */}
-          <section className="mb-4">
+          <section className="section-block">
             <h2>16. Contact Us</h2>
             <p>
               If you have any questions about this Privacy Policy or our data practices, 

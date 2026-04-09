@@ -84,7 +84,8 @@ if (usePostgres)
 {
     // PostgreSQL (Render/Supabase/Azure)
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseNpgsql(connectionString));
+        options.UseNpgsql(connectionString)
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 }
 else
 {

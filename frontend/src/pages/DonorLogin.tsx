@@ -84,8 +84,8 @@ export default function DonorLogin() {
 
           <div className="mt-3 p-3 rounded" style={{ background: 'var(--nh-bg, #f8f5f1)', fontSize: '0.78rem' }}>
             <div className="fw-semibold mb-1 text-muted">Test Account</div>
-            <div><strong>Email:</strong> <code>donor@example.com</code></div>
-            <div><strong>Password:</strong> <code>NhyiraHaven2026!</code></div>
+            <div><strong>Email:</strong> <code>emma-evans@yahoo.com</code></div>
+            <div><strong>Password:</strong> <code>EmmaEvans2026!</code></div>
           </div>
 
           <hr className="my-3" />

@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, [token]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; mfa?: MfaRequired }> => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080/api'}/auth/login`, {
         method: 'POST',

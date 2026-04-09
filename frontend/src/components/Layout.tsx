@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { CookieConsent } from './CookieConsent'
+import nhyiraLogo from '../assets/nhyira-haven-logo.svg'
 
 function Layout() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -17,8 +18,9 @@ function Layout() {
       <header className="bg-primary text-white py-3">
         <div className="container">
           <div className="d-flex justify-content-between align-items-center">
-            <Link to="/" className="text-white text-decoration-none fs-4 fw-bold">
-              Nhyira Haven
+            <Link to="/" className="text-white text-decoration-none fs-4 fw-bold d-flex align-items-center gap-2">
+              <img src={nhyiraLogo} alt="Nhyira Haven" className="brand-logo brand-logo--compact" />
+              <span>Nhyira Haven</span>
             </Link>
             <nav className="d-flex align-items-center gap-3">
               {isAuthenticated ? (

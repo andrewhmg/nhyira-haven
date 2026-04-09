@@ -12,12 +12,13 @@ export default function Landing() {
   }, []);
 
   return (
-    <div>
+    <div className="content-stack">
       {/* Hero */}
       <section className="hero-section">
         <div className="container">
-          <h1>Where Healing Begins</h1>
-          <p>
+          <p className="section-kicker text-white-50">Nhyira Haven</p>
+          <h1 className="section-title">Where Healing Begins</h1>
+          <p className="type-body-md">
             Providing safehouses and rehabilitation for survivors of trafficking and abuse
             across West Africa. Every girl deserves safety, healing, and a future.
           </p>
@@ -69,11 +70,12 @@ export default function Landing() {
       {/* Three Pillars */}
       <section className="nh-section">
         <div className="container">
-          <div className="text-center mb-5">
-            <h2>Our Approach</h2>
-            <p className="text-muted">A comprehensive journey from rescue to reintegration</p>
+          <div className="page-section-header text-center">
+            <p className="section-kicker">How We Work</p>
+            <h2 className="section-title">Our Approach</h2>
+            <p className="section-subtitle">A comprehensive journey from rescue to reintegration.</p>
           </div>
-          <div className="row g-4">
+          <div className="row g-4 g-lg-5">
             {[
               {
                 icon: <Shield size={40} />,
@@ -95,10 +97,10 @@ export default function Landing() {
               },
             ].map((pillar) => (
               <div key={pillar.title} className="col-md-4">
-                <div className="nh-card p-4 text-center h-100">
+                <div className="nh-card p-4 text-center h-100 soft-panel">
                   <div className="mb-3" style={{ color: pillar.color }}>{pillar.icon}</div>
                   <h5 className="fw-bold mb-2">{pillar.title}</h5>
-                  <p className="text-muted small mb-0">{pillar.desc}</p>
+                  <p className="text-muted small mb-0 mx-auto" style={{ maxWidth: 320 }}>{pillar.desc}</p>
                 </div>
               </div>
             ))}
@@ -109,9 +111,10 @@ export default function Landing() {
       {/* Where Your Support Goes */}
       <section className="nh-section" style={{ background: 'var(--nh-bg-white)' }}>
         <div className="container">
-          <div className="text-center mb-5">
-            <h2>Where Your Support Goes</h2>
-            <p className="text-muted">Every contribution directly supports our mission</p>
+          <div className="page-section-header text-center">
+            <p className="section-kicker">Stewardship</p>
+            <h2 className="section-title">Where Your Support Goes</h2>
+            <p className="section-subtitle">Every contribution directly supports our mission</p>
           </div>
           <div className="row g-4 justify-content-center">
             {[
@@ -121,7 +124,7 @@ export default function Landing() {
               { label: 'Housing & Operations', pct: 20, icon: <Building2 size={24} />, color: 'var(--nh-accent)' },
             ].map((item) => (
               <div key={item.label} className="col-6 col-md-3">
-                <div className="text-center">
+                <div className="text-center nh-card soft-panel p-3 h-100">
                   <div
                     className="mx-auto d-flex align-items-center justify-content-center rounded-circle mb-3"
                     style={{ width: 72, height: 72, background: `${item.color}15`, color: item.color }}
@@ -140,10 +143,10 @@ export default function Landing() {
       {/* Impact story */}
       <section className="nh-section">
         <div className="container">
-          <div className="row align-items-center g-4">
+          <div className="row align-items-center g-4 g-lg-5">
             <div className="col-md-6">
               <div
-                className="rounded-3 d-flex align-items-center justify-content-center"
+                className="rounded-3 d-flex align-items-center justify-content-center soft-panel"
                 style={{
                   background: 'linear-gradient(135deg, var(--nh-primary) 0%, var(--nh-secondary) 100%)',
                   height: 320,
@@ -158,13 +161,14 @@ export default function Landing() {
               </div>
             </div>
             <div className="col-md-6">
-              <h2>Transforming Lives, One Girl at a Time</h2>
-              <p className="text-muted mb-3">
+              <p className="section-kicker">Story of Change</p>
+              <h2 className="section-title">Transforming Lives, One Girl at a Time</h2>
+              <p className="text-muted mb-4 type-body-md">
                 Each girl who enters our program receives personalized care spanning counseling,
                 education, health services, and family reintegration support. Our data-driven
                 approach ensures no one falls through the cracks.
               </p>
-              <div className="d-flex gap-4 mb-3">
+              <div className="d-flex gap-4 mb-4">
                 <div>
                   <div className="fw-bold fs-4" style={{ color: 'var(--nh-primary)' }}>
                     {stats?.residents.active ?? '—'}

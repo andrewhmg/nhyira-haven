@@ -82,6 +82,12 @@ export default function DonorLogin() {
             </button>
           </form>
 
+          <div className="mt-3 p-3 rounded" style={{ background: 'var(--nh-bg, #f8f5f1)', fontSize: '0.78rem' }}>
+            <div className="fw-semibold mb-1 text-muted">Test Account</div>
+            <div><strong>Email:</strong> <code>donor@example.com</code></div>
+            <div><strong>Password:</strong> <code>NhyiraHaven2026!</code></div>
+          </div>
+
           <hr className="my-3" />
           <div className="text-center">
             <Link to="/" className="small text-decoration-none text-muted">

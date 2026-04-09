@@ -2,8 +2,13 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir \
+    numpy \
+    scikit-learn \
+    joblib \
+    flask \
+    flask-cors \
+    gunicorn
 
 COPY prediction_api.py .
 COPY models/ ./models/

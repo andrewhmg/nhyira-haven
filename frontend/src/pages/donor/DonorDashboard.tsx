@@ -17,7 +17,7 @@ export default function DonorDashboard() {
   useEffect(() => {
     async function loadProfile() {
       try {
-        const res = await fetch(`${API_BASE_URL}/donor-portal/me`, {
+        const res = await fetch(`${API_BASE_URL}/donorportal/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) {

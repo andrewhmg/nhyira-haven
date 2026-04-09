@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -10,8 +10,21 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showTestAccounts, setShowTestAccounts] = useState(false);
-  const { login } = useAuth();
+
+  // MFA state
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaToken, setMfaToken] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
+  const mfaInputRef = useRef<HTMLInputElement>(null);
+
+  const { login, verifyMfa } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (mfaRequired && mfaInputRef.current) {
+      mfaInputRef.current.focus();
+    }
+  }, [mfaRequired]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,8 +33,24 @@ export default function Login() {
     const result = await login(email, password);
     if (result.success) {
       navigate('/admin');
+    } else if (result.mfa) {
+      setMfaRequired(true);
+      setMfaToken(result.mfa.mfaToken);
     } else {
       setError(result.error || 'Login failed. Please try again.');
+    }
+    setLoading(false);
+  };
+
+  const handleMfaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    const result = await verifyMfa(mfaToken, mfaCode);
+    if (result.success) {
+      navigate('/admin');
+    } else {
+      setError(result.error || 'Invalid code. Please try again.');
     }
     setLoading(false);
   };
@@ -41,6 +70,53 @@ export default function Login() {
             <div className="alert alert-danger py-2 small" role="alert">{error}</div>
           )}
 
+          {mfaRequired ? (
+            <form onSubmit={handleMfaSubmit}>
+              <div className="text-center mb-3">
+                <ShieldCheck size={40} className="text-primary mb-2" />
+                <p className="small text-muted">
+                  Enter the 6-digit code from your authenticator app
+                </p>
+              </div>
+              <div className="mb-3">
+                <label htmlFor="mfaCode" className="form-label small fw-semibold">Verification Code</label>
+                <input
+                  ref={mfaInputRef}
+                  type="text"
+                  className="form-control text-center fs-4 letter-spacing-2"
+                  id="mfaCode"
+                  value={mfaCode}
+                  onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  maxLength={6}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="btn btn-primary w-100 py-2"
+                disabled={loading || mfaCode.length !== 6}
+              >
+                {loading ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" />
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify'
+                )}
+              </button>
+              <button
+                type="button"
+                className="btn btn-link btn-sm w-100 mt-2 text-muted"
+                onClick={() => { setMfaRequired(false); setMfaCode(''); setMfaToken(''); setError(''); }}
+              >
+                &larr; Back to login
+              </button>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
               <label htmlFor="email" className="form-label small fw-semibold">Email address</label>
@@ -98,6 +174,7 @@ export default function Login() {
               )}
             </button>
           </form>
+          )}
 
           <div className="mt-3 text-center">
             <button

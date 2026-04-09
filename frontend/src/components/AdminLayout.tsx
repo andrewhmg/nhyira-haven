@@ -9,6 +9,7 @@ import {
   Home,
   Building2,
   BarChart3,
+  ShieldCheck,
   Menu,
   X,
   LogOut,
@@ -22,6 +23,7 @@ const sidebarLinks = [
   { to: '/admin/visits', icon: Home, label: 'Home Visits', end: false },
   { to: '/admin/safehouses', icon: Building2, label: 'Safehouses', end: false },
   { to: '/admin/reports', icon: BarChart3, label: 'Reports & Analytics', end: false },
+  { to: '/admin/mfa-setup', icon: ShieldCheck, label: 'MFA Settings', end: false },
 ];
 
 export default function AdminLayout() {

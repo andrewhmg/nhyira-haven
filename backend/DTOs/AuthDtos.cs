@@ -47,6 +47,33 @@ public class AuthResponseDto
     public string? Token { get; set; }
     public UserDto? User { get; set; }
     public IEnumerable<string>? Errors { get; set; }
+    public bool RequiresMfa { get; set; }
+    public string? MfaToken { get; set; }
+}
+
+public class MfaSetupResponseDto
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public string? SharedKey { get; set; }
+    public string? QrCodeUri { get; set; }
+}
+
+public class MfaVerifyDto
+{
+    [Required(ErrorMessage = "Verification code is required")]
+    [StringLength(6, MinimumLength = 6, ErrorMessage = "Code must be 6 digits")]
+    public string Code { get; set; } = string.Empty;
+}
+
+public class MfaLoginDto
+{
+    [Required(ErrorMessage = "MFA token is required")]
+    public string MfaToken { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Verification code is required")]
+    [StringLength(6, MinimumLength = 6, ErrorMessage = "Code must be 6 digits")]
+    public string Code { get; set; } = string.Empty;
 }
 
 public class UserDto

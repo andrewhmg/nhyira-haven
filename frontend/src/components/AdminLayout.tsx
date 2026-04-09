@@ -13,7 +13,6 @@ import {
   X,
   LogOut,
 } from 'lucide-react';
-import nhyiraLogo from '../assets/nhyira-haven-logo.svg';
 
 const sidebarLinks = [
   { to: '/admin', icon: LayoutDashboard, label: 'Dashboard', end: true },
@@ -43,7 +42,7 @@ export default function AdminLayout() {
 
       <aside className={`admin-sidebar${sidebarOpen ? ' open' : ''}`} aria-label="Staff navigation">
         <NavLink to="/" className="sidebar-brand d-flex align-items-center gap-2">
-          <img src={nhyiraLogo} alt="Nhyira Haven" className="brand-logo brand-logo--admin" />
+          <img src="/logo-nhyira-hands.png" alt="Nhyira Haven" className="brand-logo brand-logo--admin" />
           <span>Nhyira Haven</span>
         </NavLink>
         <nav className="sidebar-nav">
@@ -89,7 +88,7 @@ export default function AdminLayout() {
             {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
           <NavLink to="/" className="d-flex align-items-center gap-2 text-decoration-none">
-            <img src={nhyiraLogo} alt="Nhyira Haven" className="brand-logo brand-logo--compact" />
+            <img src="/logo-nhyira-hands.png" alt="Nhyira Haven" className="brand-logo brand-logo--compact" />
             <span className="fw-bold" style={{ color: 'var(--nh-primary)' }}>Nhyira Haven</span>
           </NavLink>
         </div>

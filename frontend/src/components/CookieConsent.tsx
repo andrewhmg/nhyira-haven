@@ -68,8 +68,8 @@ export function CookieConsent() {
   if (!showBanner) return null;
 
   return (
-    <div 
-      className="position-fixed bottom-0 start-0 end-0 bg-dark text-white p-3" 
+    <div
+      className="cookie-consent-bar position-fixed bottom-0 start-0 end-0 p-3"
       style={{ zIndex: 1050 }}
     >
       <div className="container">
@@ -77,11 +77,14 @@ export function CookieConsent() {
           // Simplified Banner
           <div className="row align-items-center">
             <div className="col-lg-7 mb-2 mb-lg-0">
-              <p className="mb-0">
-                <strong>🍪 Cookie Notice</strong> — We use cookies to enhance your experience. 
-                Essential cookies are required for the site to function. 
-                <button 
-                  className="btn btn-link text-info p-0 ms-2"
+              <p className="mb-0 small">
+                <strong style={{ color: 'var(--nh-heading)' }}>Cookie notice</strong>
+                {' — '}
+                We use cookies to enhance your experience. Essential cookies are required for the site to function.
+                <button
+                  type="button"
+                  className="btn btn-link p-0 ms-2"
+                  style={{ color: 'var(--nh-primary)' }}
                   onClick={() => setShowDetails(true)}
                 >
                   Customize settings
@@ -89,13 +92,15 @@ export function CookieConsent() {
               </p>
             </div>
             <div className="col-lg-5 text-lg-end">
-              <button 
-                className="btn btn-outline-light btn-sm me-2"
+              <button
+                type="button"
+                className="btn btn-outline-primary btn-sm me-2"
                 onClick={rejectAll}
               >
                 Essential Only
               </button>
-              <button 
+              <button
+                type="button"
                 className="btn btn-primary btn-sm"
                 onClick={acceptAll}
               >
@@ -106,7 +111,7 @@ export function CookieConsent() {
         ) : (
           // Detailed Settings
           <div>
-            <h5 className="mb-3">Cookie Preferences</h5>
+            <h5 className="mb-3" style={{ color: 'var(--nh-heading)' }}>Cookie Preferences</h5>
             <p className="text-muted small mb-3">
               Choose which cookies you want to accept. Essential cookies are always active 
               and required for the site to function properly.
@@ -175,15 +180,18 @@ export function CookieConsent() {
             </div>
 
             <div className="d-flex justify-content-between align-items-center">
-              <button 
-                className="btn btn-link text-info p-0"
+              <button
+                type="button"
+                className="btn btn-link p-0"
+                style={{ color: 'var(--nh-primary)' }}
                 onClick={() => setShowDetails(false)}
               >
                 ← Back to summary
               </button>
               <div>
-                <button 
-                  className="btn btn-outline-light btn-sm me-2"
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-sm me-2"
                   onClick={rejectAll}
                 >
                   Reject All

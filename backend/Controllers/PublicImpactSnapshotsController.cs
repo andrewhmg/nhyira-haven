@@ -6,7 +6,7 @@ using NhyiraHaven.Models;
 namespace NhyiraHaven.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/public-impact-snapshots")]
 public class PublicImpactSnapshotsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

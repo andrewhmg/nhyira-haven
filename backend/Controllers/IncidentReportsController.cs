@@ -6,7 +6,7 @@ using NhyiraHaven.Models;
 namespace NhyiraHaven.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/incident-reports")]
 public class IncidentReportsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

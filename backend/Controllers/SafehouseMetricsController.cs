@@ -6,7 +6,7 @@ using NhyiraHaven.Models;
 namespace NhyiraHaven.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/safehouse-metrics")]
 public class SafehouseMetricsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

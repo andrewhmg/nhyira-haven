@@ -6,7 +6,7 @@ using NhyiraHaven.Models;
 namespace NhyiraHaven.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/process-recordings")]
 public class ProcessRecordingsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

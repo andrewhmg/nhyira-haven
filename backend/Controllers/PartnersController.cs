@@ -7,7 +7,7 @@ using NhyiraHaven.Models;
 namespace NhyiraHaven.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/partners")]
 public class PartnersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

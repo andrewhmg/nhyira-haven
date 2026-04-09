@@ -6,7 +6,7 @@ using NhyiraHaven.Models;
 namespace NhyiraHaven.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/in-kind-donation-items")]
 public class InKindDonationItemsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

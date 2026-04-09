@@ -6,7 +6,7 @@ using NhyiraHaven.Models;
 namespace NhyiraHaven.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/social-media-posts")]
 public class SocialMediaPostsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;

@@ -99,22 +99,20 @@ export function buildDonorFeatures(supporter: {
   const joined = new Date(supporter.joinedDate);
   const recencyDays = Math.floor((now.getTime() - lastDonation.getTime()) / (1000 * 60 * 60 * 24));
   const tenureDays = Math.floor((now.getTime() - joined.getTime()) / (1000 * 60 * 60 * 24));
-  const avgDonation = supporter.donationCount > 0 ? supporter.totalDonated / supporter.donationCount : 0;
-  const donationsPerYear = tenureDays > 0 ? (supporter.donationCount / tenureDays) * 365 : supporter.donationCount;
 
   return {
     recency_days: recencyDays,
     frequency: supporter.donationCount,
-    monetary: supporter.totalDonated,
-    total_donated: supporter.totalDonated,
-    avg_donation: avgDonation,
-    donation_count: supporter.donationCount,
-    tenure_days: tenureDays,
-    donations_per_year: donationsPerYear,
-    max_donation: supporter.totalDonated, // approximation
-    min_donation: avgDonation, // approximation
-    is_recurring: supporter.isRecurring ? 1 : 0,
-    avg_days_between_donations: supporter.donationCount > 1 ? tenureDays / (supporter.donationCount - 1) : tenureDays,
+    total_monetary: supporter.totalDonated,
+    avg_amount: supporter.donationCount > 0 ? supporter.totalDonated / supporter.donationCount : 0,
+    pct_recurring: supporter.isRecurring ? 1 : 0,
+    n_donation_types: 1,
+    n_channels: 1,
+    n_campaigns: 0,
+    donor_tenure_days: tenureDays,
+    frequency_trend: 0,
+    n_safehouses_funded: 1,
+    n_program_areas: 1,
   };
 }
 
@@ -123,66 +121,32 @@ export function buildResidentFeatures(resident: {
   intakeDate: string;
   status: string;
   processRecordings?: Array<{ sessionType: string }>;
-  incidentReports?: Array<{ severity: string; isResolved: boolean }>;
-  healthWellbeingRecords?: Array<{ mentalHealthStatus?: string }>;
-  educationRecords?: Array<{ performanceLevel: string; score?: number }>;
+  incidentReports?: Array<{ severity: string; isResolved: boolean; incidentType?: string }>;
   homeVisitations?: Array<{ followUpNeeded: boolean }>;
   interventionPlans?: Array<{ status: string }>;
 }) {
-  const now = new Date();
-  const intake = new Date(resident.intakeDate);
-  const daysSinceIntake = Math.floor((now.getTime() - intake.getTime()) / (1000 * 60 * 60 * 24));
-  const monthsSinceIntake = daysSinceIntake / 30;
-
-  const recordings = resident.processRecordings || [];
   const incidents = resident.incidentReports || [];
-  const health = resident.healthWellbeingRecords || [];
-  const education = resident.educationRecords || [];
-  const visits = resident.homeVisitations || [];
   const interventions = resident.interventionPlans || [];
 
-  const resolvedIncidents = incidents.filter((i) => i.isResolved).length;
-  const totalIncidents = incidents.length;
   const highSeverity = incidents.filter((i) => i.severity === 'Critical' || i.severity === 'High').length;
-
-  const avgScore = education.length > 0
-    ? education.reduce((sum, e) => sum + (e.score ?? 50), 0) / education.length
-    : 50;
-
   const completedInterventions = interventions.filter((i) => i.status === 'Completed').length;
+  const onHoldInterventions = interventions.filter((i) => i.status === 'On Hold').length;
+  const runawayAttempts = incidents.filter((i) => i.incidentType === 'Runaway').length;
 
   return {
-    // Timeline
-    days_since_intake: daysSinceIntake,
-    months_in_program: monthsSinceIntake,
-    // Sessions
-    session_count: recordings.length,
-    sessions_per_month: monthsSinceIntake > 0 ? recordings.length / monthsSinceIntake : recordings.length,
-    // Incidents
-    total_incidents: totalIncidents,
-    resolved_incidents: resolvedIncidents,
-    incident_resolution_rate: totalIncidents > 0 ? resolvedIncidents / totalIncidents : 1,
-    high_severity_incidents: highSeverity,
-    early_incident_count: totalIncidents,
-    // Risk
-    initial_risk: highSeverity > 2 ? 3 : highSeverity > 0 ? 2 : 1,
     risk_improvement: highSeverity > 0 ? 0 : 1,
-    // Health
-    health_records_count: health.length,
-    // Education
-    avg_education_score: avgScore,
-    education_records_count: education.length,
-    pct_favorable: completedInterventions / Math.max(interventions.length, 1),
-    // Visits
-    home_visit_count: visits.length,
-    follow_up_needed_pct: visits.length > 0 ? visits.filter((v) => v.followUpNeeded).length / visits.length : 0,
-    // Interventions
-    completed_interventions: completedInterventions,
-    total_interventions: interventions.length,
-    intervention_completion_rate: interventions.length > 0 ? completedInterventions / interventions.length : 0,
-    // Emotional (approximations)
+    compound_trauma_score: highSeverity > 2 ? 3 : highSeverity > 0 ? 2 : 1,
+    family_solo_parent: 0,
     avg_emo_improvement: 0.5,
-    emotional_baseline: 3,
+    any_completed: completedInterventions > 0 ? 1 : 0,
+    pct_plans_achieved: completedInterventions / Math.max(interventions.length, 1),
+    pct_plans_on_hold: onHoldInterventions / Math.max(interventions.length, 1),
+    runaway_attempts: runawayAttempts,
+    is_pwd: 0,
+    family_informal_settler: 0,
+    early_pct_concerns: 0.5,
+    early_avg_emo_start: 0.5,
+    early_avg_cooperation: 0.5,
   };
 }
 

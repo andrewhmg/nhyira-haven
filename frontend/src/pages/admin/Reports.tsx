@@ -209,12 +209,12 @@ export default function Reports() {
           has_call_to_action: true,
         };
         const leverConfigs: Array<{ label: string; overrides: Parameters<typeof buildSocialFeatures>[0] }> = [
-          { label: 'Boost the post (paid promotion)',          overrides: { ...refOpts, is_boosted: true } },
-          { label: 'Use an Urgent tone',                       overrides: { ...refOpts, sentiment_tone: 'Urgent' } },
-          { label: 'Feature a resident story',                 overrides: { ...refOpts, features_resident_story: true } },
-          { label: 'Use Video instead of Photo',               overrides: { ...refOpts, media_type: 'Video' } },
-          { label: 'Switch content topic to Donor Impact',     overrides: { ...refOpts, content_topic: 'DonorImpact' } },
-          { label: 'Remove call-to-action',                    overrides: { ...refOpts, has_call_to_action: false } },
+          { label: 'Boost the post (paid promotion)', overrides: { ...refOpts, is_boosted: true } },
+          { label: 'Use an Urgent tone', overrides: { ...refOpts, sentiment_tone: 'Urgent' } },
+          { label: 'Feature a resident story', overrides: { ...refOpts, features_resident_story: true } },
+          { label: 'Use Video instead of Photo', overrides: { ...refOpts, media_type: 'Video' } },
+          { label: 'Switch content topic to Donor Impact', overrides: { ...refOpts, content_topic: 'DonorImpact' } },
+          { label: 'Remove call-to-action', overrides: { ...refOpts, has_call_to_action: false } },
         ];
         try {
           const baselineResult = await predictPostConversion(buildSocialFeatures(refOpts));
@@ -768,8 +768,8 @@ export default function Reports() {
                 {(() => {
                   const metricConfig: Record<string, { label: string; unit: string; domain: [number, number]; color: string; betterIsHigher: boolean }> = {
                     education: { label: 'Education Progress', unit: '% (0–100)', domain: [0, 100], color: '#2D8659', betterIsHigher: true },
-                    health:    { label: 'Health Score',       unit: 'score (1–5)', domain: [0, 5],   color: '#3B82F6', betterIsHigher: true },
-                    incidents: { label: 'Incident Count',     unit: 'incidents / month', domain: [0, 10], color: '#E8A838', betterIsHigher: false },
+                    health: { label: 'Health Score', unit: 'score (1–5)', domain: [0, 5], color: '#3B82F6', betterIsHigher: true },
+                    incidents: { label: 'Incident Count', unit: 'incidents / month', domain: [0, 10], color: '#E8A838', betterIsHigher: false },
                   };
                   return (
                     <div className="d-flex flex-column gap-3">

@@ -116,18 +116,7 @@ export default function Residents() {
     if (!safehouses.length) setSafehouses(s);
     setLoading(false);
     setPage(1);
-
-    // Fire ML predictions for active residents (non-blocking)
-    const risks: Record<number, EarlyWarningResult> = {};
-    const active = r.filter((res: Resident) => res.status === 'Active').slice(0, 50);
-    const batch = active.map(async (res: Resident) => {
-      try {
-        const features = buildResidentFeatures(res);
-        const result = await predictEarlyWarning(features);
-        risks[res.id] = result;
-      } catch { /* ML service unavailable */ }
-    });
-    Promise.allSettled(batch).then(() => setMlRisks({ ...risks }));
+    setMlRisks({});
   };
 
   useEffect(() => { loadData(); }, [filterSafehouse, filterStatus, filterCategory]);
@@ -144,6 +133,30 @@ export default function Residents() {
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  // Lazily predict ML risk only for residents visible on the current page.
+  // Results are cached in mlRisks so paging back doesn't refetch, and
+  // requests run sequentially to avoid hammering the ML service.
+  useEffect(() => {
+    const visibleActive = paginated.filter(
+      (r) => r.status === 'Active' && mlRisks[r.id] === undefined
+    );
+    if (visibleActive.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      for (const res of visibleActive) {
+        if (cancelled) return;
+        try {
+          const features = buildResidentFeatures(res);
+          const result = await predictEarlyWarning(features);
+          if (cancelled) return;
+          setMlRisks((prev) => ({ ...prev, [res.id]: result }));
+        } catch { /* ML service unavailable */ }
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [residents, search, page]);
 
   const handleDelete = async () => {
     if (!deleteTarget) return;

@@ -1,74 +1,85 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import PublicLayout from './components/PublicLayout';
 import AdminLayout from './components/AdminLayout';
 import DonorLayout from './components/DonorLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
-import Landing from './pages/Landing';
-import ImpactDashboard from './pages/ImpactDashboard';
-import Login from './pages/Login';
-import DonorLogin from './pages/DonorLogin';
-import PrivacyPolicy from './pages/PrivacyPolicy';
+const Landing = lazy(() => import('./pages/Landing'));
+const ImpactDashboard = lazy(() => import('./pages/ImpactDashboard'));
+const Login = lazy(() => import('./pages/Login'));
+const DonorLogin = lazy(() => import('./pages/DonorLogin'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 
-import AdminDashboard from './pages/admin/AdminDashboard';
-import Residents from './pages/admin/Residents';
-import ResidentDetail from './pages/admin/ResidentDetail';
-import Donors from './pages/admin/Donors';
-import DonorDetail from './pages/admin/DonorDetail';
-import ProcessRecordings from './pages/admin/ProcessRecordings';
-import HomeVisitations from './pages/admin/HomeVisitations';
-import CaseConferences from './pages/admin/CaseConferences';
-import SafehouseManagement from './pages/admin/SafehouseManagement';
-import Reports from './pages/admin/Reports';
-import MfaSetup from './pages/admin/MfaSetup';
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const Residents = lazy(() => import('./pages/admin/Residents'));
+const ResidentDetail = lazy(() => import('./pages/admin/ResidentDetail'));
+const Donors = lazy(() => import('./pages/admin/Donors'));
+const DonorDetail = lazy(() => import('./pages/admin/DonorDetail'));
+const ProcessRecordings = lazy(() => import('./pages/admin/ProcessRecordings'));
+const HomeVisitations = lazy(() => import('./pages/admin/HomeVisitations'));
+const CaseConferences = lazy(() => import('./pages/admin/CaseConferences'));
+const SafehouseManagement = lazy(() => import('./pages/admin/SafehouseManagement'));
+const Reports = lazy(() => import('./pages/admin/Reports'));
+const MfaSetup = lazy(() => import('./pages/admin/MfaSetup'));
 
-import DonorDashboard from './pages/donor/DonorDashboard';
+const DonorDashboard = lazy(() => import('./pages/donor/DonorDashboard'));
+
+function PageFallback() {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <div style={{ color: '#6B5D4F', fontSize: '0.95rem' }}>Loading…</div>
+    </div>
+  );
+}
 
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route element={<PublicLayout />}>
-          <Route index element={<Landing />} />
-          <Route path="impact" element={<ImpactDashboard />} />
-          <Route path="login" element={<Login />} />
-          <Route path="donor-login" element={<DonorLogin />} />
-          <Route path="privacy" element={<PrivacyPolicy />} />
-        </Route>
+      <Suspense fallback={<PageFallback />}>
+        <Routes>
+          <Route element={<PublicLayout />}>
+            <Route index element={<Landing />} />
+            <Route path="impact" element={<ImpactDashboard />} />
+            <Route path="login" element={<Login />} />
+            <Route path="donor-login" element={<DonorLogin />} />
+            <Route path="privacy" element={<PrivacyPolicy />} />
+          </Route>
 
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute>
-              <AdminLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<AdminDashboard />} />
-          <Route path="residents" element={<Residents />} />
-          <Route path="residents/:id" element={<ResidentDetail />} />
-          <Route path="donors" element={<Donors />} />
-          <Route path="donors/:id" element={<DonorDetail />} />
-          <Route path="recordings" element={<ProcessRecordings />} />
-          <Route path="visits" element={<HomeVisitations />} />
-          <Route path="home-visits" element={<HomeVisitations />} />
-          <Route path="case-conferences" element={<CaseConferences />} />
-          <Route path="safehouses" element={<SafehouseManagement />} />
-          <Route path="reports" element={<Reports />} />
-          <Route path="mfa-setup" element={<MfaSetup />} />
-        </Route>
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="residents" element={<Residents />} />
+            <Route path="residents/:id" element={<ResidentDetail />} />
+            <Route path="donors" element={<Donors />} />
+            <Route path="donors/:id" element={<DonorDetail />} />
+            <Route path="recordings" element={<ProcessRecordings />} />
+            <Route path="visits" element={<HomeVisitations />} />
+            <Route path="home-visits" element={<HomeVisitations />} />
+            <Route path="case-conferences" element={<CaseConferences />} />
+            <Route path="safehouses" element={<SafehouseManagement />} />
+            <Route path="reports" element={<Reports />} />
+            <Route path="mfa-setup" element={<MfaSetup />} />
+          </Route>
 
-        <Route
-          path="/donor"
-          element={
-            <ProtectedRoute>
-              <DonorLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<DonorDashboard />} />
-        </Route>
-      </Routes>
+          <Route
+            path="/donor"
+            element={
+              <ProtectedRoute>
+                <DonorLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<DonorDashboard />} />
+          </Route>
+        </Routes>
+      </Suspense>
     </Router>
   );
 }

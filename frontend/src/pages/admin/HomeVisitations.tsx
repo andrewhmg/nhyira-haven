@@ -14,7 +14,6 @@ const VISIT_TYPES = [
   'Reintegration Assessment',
   'Post-Placement Monitoring',
   'Emergency',
-  'Case Conference',
 ] as const;
 
 const COOPERATION_LEVELS = ['Cooperative', 'Neutral', 'Uncooperative'] as const;
@@ -79,6 +78,8 @@ export default function HomeVisitations() {
         const all: VisitWithResident[] = [];
         residents.forEach((r) => {
           r.homeVisitations?.forEach((hv) => {
+            // Case Conferences live on their own page
+            if (hv.visitType === 'Case Conference') return;
             all.push({ ...hv, residentName: `${r.firstName} ${r.lastName}` });
           });
         });

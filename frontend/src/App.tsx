@@ -17,6 +17,7 @@ import Donors from './pages/admin/Donors';
 import DonorDetail from './pages/admin/DonorDetail';
 import ProcessRecordings from './pages/admin/ProcessRecordings';
 import HomeVisitations from './pages/admin/HomeVisitations';
+import CaseConferences from './pages/admin/CaseConferences';
 import SafehouseManagement from './pages/admin/SafehouseManagement';
 import Reports from './pages/admin/Reports';
 import MfaSetup from './pages/admin/MfaSetup';
@@ -50,6 +51,8 @@ function App() {
           <Route path="donors/:id" element={<DonorDetail />} />
           <Route path="recordings" element={<ProcessRecordings />} />
           <Route path="visits" element={<HomeVisitations />} />
+          <Route path="home-visits" element={<HomeVisitations />} />
+          <Route path="case-conferences" element={<CaseConferences />} />
           <Route path="safehouses" element={<SafehouseManagement />} />
           <Route path="reports" element={<Reports />} />
           <Route path="mfa-setup" element={<MfaSetup />} />

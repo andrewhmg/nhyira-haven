@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getDashboardMetrics, getDonationStats, getSafehouses, getResidents, getSupporters } from '../../services/api';
+import type { DonationCategorySlice } from '../../services/api';
 import type { DashboardMetrics, Safehouse, Resident, Supporter } from '../../types/api';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -19,7 +20,14 @@ type Tab = 'donations' | 'residents' | 'safehouses' | 'overview' | 'ml-insights'
 export default function Reports() {
   const [tab, setTab] = useState<Tab>('overview');
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [donationStats, setDonationStats] = useState<{ totalAmount: number; totalByType: Array<{ type: string; count: number; total: number }>; recurringDonations: number; averageDonation: number; totalDonations: number } | null>(null);
+  const [donationStats, setDonationStats] = useState<{
+    totalAmount: number;
+    totalByType: Array<{ type: string; count: number; total: number }>;
+    valueByCategory?: DonationCategorySlice[];
+    recurringDonations: number;
+    averageDonation: number;
+    totalDonations: number;
+  } | null>(null);
   const [safehouses, setSafehouses] = useState<Safehouse[]>([]);
   const [residents, setResidents] = useState<Resident[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,11 +141,10 @@ export default function Reports() {
     count: d.count,
   })) ?? [];
 
-  const donationByType = donationStats?.totalByType.map((t) => ({
-    name: t.type,
-    value: t.total,
-    count: t.count,
-  })) ?? [];
+  const donationByType =
+    donationStats?.valueByCategory && donationStats.valueByCategory.length > 0
+      ? donationStats.valueByCategory.map((c) => ({ name: c.label, value: c.total, count: c.count }))
+      : (donationStats?.totalByType ?? []).map((t) => ({ name: t.type, value: t.total, count: t.count }));
 
   const statusCounts: Record<string, number> = {};
   residents.forEach((r) => { statusCounts[r.status] = (statusCounts[r.status] || 0) + 1; });
@@ -251,7 +258,8 @@ export default function Reports() {
           </div>
           <div className="col-md-4">
             <div className="nh-card p-4 h-100">
-              <h5 className="fw-bold mb-3">By Donation Type</h5>
+              <h5 className="fw-bold mb-3">By Contribution Type</h5>
+              <p className="text-muted small mb-2">Cash gifts, in-kind goods (including itemized value), volunteer time, and other support.</p>
               {donationByType.length > 0 ? (
                 <ResponsiveContainer width="100%" height={260}>
                   <PieChart>

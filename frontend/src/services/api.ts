@@ -151,14 +151,47 @@ export async function getDonation(id: number): Promise<Donation> {
   return fetchApi<Donation>(`/donations/${id}`);
 }
 
+export type DonationCategorySlice = {
+  key: string;
+  label: string;
+  total: number;
+  count: number;
+};
+
 export async function getDonationStats(): Promise<{
   totalAmount: number;
   totalByType: Array<{ type: string; count: number; total: number }>;
+  valueByCategory?: DonationCategorySlice[];
   recurringDonations: number;
   averageDonation: number;
   totalDonations: number;
 }> {
-  return fetchApi('/donations/stats');
+  const raw = await fetchApi<Record<string, unknown>>('/donations/stats');
+  const normSlice = (x: Record<string, unknown>): DonationCategorySlice => ({
+    key: String(x.key ?? x.Key ?? ''),
+    label: String(x.label ?? x.Label ?? ''),
+    total: Number(x.total ?? x.Total ?? 0),
+    count: Number(x.count ?? x.Count ?? 0),
+  });
+  const normType = (x: Record<string, unknown>) => ({
+    type: String(x.type ?? x.Type ?? ''),
+    count: Number(x.count ?? x.Count ?? 0),
+    total: Number(x.total ?? x.Total ?? 0),
+  });
+  const vbc = raw.valueByCategory ?? raw.ValueByCategory;
+  const slices = Array.isArray(vbc)
+    ? (vbc as Record<string, unknown>[]).map(normSlice).filter((s) => s.total > 0)
+    : [];
+  return {
+    totalAmount: Number(raw.totalAmount ?? raw.TotalAmount ?? 0),
+    totalByType: Array.isArray(raw.totalByType ?? raw.TotalByType)
+      ? ((raw.totalByType ?? raw.TotalByType) as Record<string, unknown>[]).map(normType)
+      : [],
+    valueByCategory: slices.length > 0 ? slices : undefined,
+    recurringDonations: Number(raw.recurringDonations ?? raw.RecurringDonations ?? 0),
+    averageDonation: Number(raw.averageDonation ?? raw.AverageDonation ?? 0),
+    totalDonations: Number(raw.totalDonations ?? raw.TotalDonations ?? 0),
+  };
 }
 
 export async function createDonation(data: Partial<Donation>): Promise<Donation> {

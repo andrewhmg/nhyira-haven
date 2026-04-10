@@ -46,7 +46,7 @@ Thumbs.db
 logs/
 
 # Secrets (never commit these)
-appsettings.Production.json
+appsettings*.json
 *.key
 *.pem
 .secrets/

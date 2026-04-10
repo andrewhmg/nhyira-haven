@@ -343,11 +343,15 @@ export default function HomeVisitations() {
                       </span>
                     )}
                   </div>
-                  {v.safetyConcerns && (
-                    <div className="mt-1 small text-danger d-flex align-items-center gap-1">
-                      <ShieldAlert size={12} /> {v.safetyConcerns.slice(0, 100)}
-                    </div>
-                  )}
+                  {(() => {
+                    const sc = v.safetyConcerns?.trim();
+                    if (!sc || sc.toLowerCase() === 'true' || sc.toLowerCase() === 'false') return null;
+                    return (
+                      <div className="mt-1 small text-danger d-flex align-items-center gap-1">
+                        <ShieldAlert size={12} /> {sc.slice(0, 100)}
+                      </div>
+                    );
+                  })()}
                   {(() => {
                     const { observations, followUp } = parseRecommendations(v.recommendations);
                     return (

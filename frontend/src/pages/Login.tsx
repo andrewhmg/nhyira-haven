@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ChevronDown, ChevronUp, ShieldCheck } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -9,7 +9,6 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showTestAccounts, setShowTestAccounts] = useState(false);
 
   // MFA state
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -176,48 +175,6 @@ export default function Login() {
           </form>
           )}
 
-          <div className="mt-3 text-center">
-            <button
-              className="btn btn-link btn-sm text-muted text-decoration-none"
-              onClick={() => setShowTestAccounts(!showTestAccounts)}
-            >
-              Test Accounts {showTestAccounts ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            </button>
-          </div>
-
-          {showTestAccounts && (
-            <div className="mt-2">
-              <div className="table-responsive">
-                <table className="table table-sm table-bordered mb-0" style={{ fontSize: '0.75rem' }}>
-                  <thead>
-                    <tr><th>Email</th><th>Password</th><th>Role</th></tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td><code>admin@nhyirahaven.org</code></td>
-                      <td><code>NhyiraHaven2026!</code></td>
-                      <td><span className="badge bg-danger">Admin</span></td>
-                    </tr>
-                    <tr>
-                      <td><code>staff@nhyirahaven.org</code></td>
-                      <td><code>NhyiraHaven2026!</code></td>
-                      <td><span className="badge bg-success">Staff</span></td>
-                    </tr>
-                    <tr>
-                      <td><code>donor@example.com</code></td>
-                      <td><code>NhyiraHaven2026!</code></td>
-                      <td><span className="badge bg-info">Donor</span></td>
-                    </tr>
-                    <tr>
-                      <td><code>secure@nhyirahaven.org</code></td>
-                      <td><code>NhyiraHaven2026!</code></td>
-                      <td><span className="badge badge-on-hold">MFA</span></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
 
           <hr className="my-3" />
           <div className="text-center">

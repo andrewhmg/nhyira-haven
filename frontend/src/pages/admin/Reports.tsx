@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { getDashboardMetrics, getDonationStats, getSafehouses, getResidents, getSupporters } from '../../services/api';
 import type { DonationCategorySlice } from '../../services/api';
 import type { DashboardMetrics, Safehouse, Resident, Supporter } from '../../types/api';
@@ -12,13 +12,30 @@ import {
   predictChurnRisk, predictAllocationROI, predictPostConversion, predictEarlyWarning,
   type AllocationROIResult,
 } from '../../services/mlApi';
+import { Calendar } from 'lucide-react';
+
 const COLORS = ['#B85C38', '#1B6B6D', '#E8A838', '#2D8659', '#8B5CF6', '#C0392B', '#6c757d'];
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = [
+  { value: 'all', label: 'All Years' },
+  { value: '2026', label: '2026' },
+  { value: '2025', label: '2025' },
+  { value: '2024', label: '2024' },
+  { value: '2023', label: '2023' },
+];
+
 type Tab = 'donations' | 'residents' | 'safehouses' | 'overview' | 'ml-insights';
+
+/** Helper to display the year label in chart titles */
+function yearLabel(selectedYear: string): string {
+  return selectedYear === 'all' ? 'All Years' : selectedYear;
+}
 
 export default function Reports() {
   const [tab, setTab] = useState<Tab>('overview');
+  const [selectedYear, setSelectedYear] = useState<string>(String(CURRENT_YEAR));
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [donationStats, setDonationStats] = useState<{
     totalAmount: number;
@@ -131,28 +148,86 @@ export default function Reports() {
     });
   }, []);
 
+  // ====== Year-filtered derived data ======
+
+  const yearNum = selectedYear === 'all' ? null : Number(selectedYear);
+
+  // Donations by month — filtered by selected year
+  const donationByMonth = useMemo(() => {
+    const raw = metrics?.donationsByMonth ?? [];
+    const filtered = yearNum ? raw.filter((d) => d.year === yearNum) : raw;
+    return filtered.map((d) => ({
+      name: yearNum ? `${MONTH_LABELS[d.month - 1]}` : `${MONTH_LABELS[d.month - 1]} ${d.year}`,
+      amount: d.total,
+      count: d.count,
+    }));
+  }, [metrics, yearNum]);
+
+  // Donation stats are aggregate — we can't year-filter them from the API,
+  // so we show them as-is. The donation-by-type pie uses this.
+  const donationByType = useMemo(() => {
+    if (!donationStats) return [];
+    return donationStats.valueByCategory && donationStats.valueByCategory.length > 0
+      ? donationStats.valueByCategory.map((c) => ({ name: c.label, value: c.total, count: c.count }))
+      : (donationStats.totalByType ?? []).map((t) => ({ name: t.type, value: t.total, count: t.count }));
+  }, [donationStats]);
+
+  // Residents — filtered by intake year
+  const filteredResidents = useMemo(() => {
+    if (!yearNum) return residents;
+    return residents.filter((r) => {
+      const intakeYear = new Date(r.intakeDate).getFullYear();
+      return intakeYear === yearNum;
+    });
+  }, [residents, yearNum]);
+
+  // Status distribution for filtered residents
+  const statusChart = useMemo(() => {
+    const statusCounts: Record<string, number> = {};
+    filteredResidents.forEach((r) => { statusCounts[r.status] = (statusCounts[r.status] || 0) + 1; });
+    return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+  }, [filteredResidents]);
+
+  // Category distribution for filtered residents
+  const categoryChart = useMemo(() => {
+    const categoryCounts: Record<string, number> = {};
+    filteredResidents.forEach((r) => { categoryCounts[r.caseCategory] = (categoryCounts[r.caseCategory] || 0) + 1; });
+    return Object.entries(categoryCounts).map(([name, value]) => ({ name, value }));
+  }, [filteredResidents]);
+
+  // Reintegration success rate for filtered residents
+  const reintegrationStats = useMemo(() => {
+    const total = filteredResidents.length;
+    const reintegrated = filteredResidents.filter((r) => {
+      if (!r.reintegrationDate) return false;
+      if (yearNum) {
+        return new Date(r.reintegrationDate).getFullYear() === yearNum;
+      }
+      return true;
+    }).length;
+    const rate = total > 0 ? Math.round((reintegrated / total) * 100) : 0;
+    return { total, reintegrated, rate };
+  }, [filteredResidents, yearNum]);
+
+  // Safehouse performance — resident counts per safehouse for the year
+  const safehousePerformance = useMemo(() => {
+    return safehouses.map((s) => {
+      const shResidents = filteredResidents.filter((r) => r.safehouseId === s.id);
+      const reintegrated = shResidents.filter((r) => !!r.reintegrationDate).length;
+      return {
+        name: s.name.length > 20 ? s.name.slice(0, 20) + '...' : s.name,
+        fullName: s.name,
+        Current: s.currentResidents,
+        Capacity: s.capacity,
+        Intake: shResidents.length,
+        Reintegrated: reintegrated,
+      };
+    });
+  }, [safehouses, filteredResidents]);
+
   if (loading) {
     return <div className="text-center py-5"><div className="spinner-border" style={{ color: 'var(--nh-primary)' }} /></div>;
   }
-
-  const donationByMonth = metrics?.donationsByMonth.map((d) => ({
-    name: `${MONTH_LABELS[d.month - 1]} ${d.year}`,
-    amount: d.total,
-    count: d.count,
-  })) ?? [];
-
-  const donationByType =
-    donationStats?.valueByCategory && donationStats.valueByCategory.length > 0
-      ? donationStats.valueByCategory.map((c) => ({ name: c.label, value: c.total, count: c.count }))
-      : (donationStats?.totalByType ?? []).map((t) => ({ name: t.type, value: t.total, count: t.count }));
-
-  const statusCounts: Record<string, number> = {};
-  residents.forEach((r) => { statusCounts[r.status] = (statusCounts[r.status] || 0) + 1; });
-  const statusChart = Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
-
-  const categoryCounts: Record<string, number> = {};
-  residents.forEach((r) => { categoryCounts[r.caseCategory] = (categoryCounts[r.caseCategory] || 0) + 1; });
-  const categoryChart = Object.entries(categoryCounts).map(([name, value]) => ({ name, value }));
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'overview', label: 'Overview' },
@@ -164,9 +239,34 @@ export default function Reports() {
 
   return (
     <div>
-      <div className="mb-4">
-        <h2 className="mb-1">Reports & Analytics</h2>
-        <p className="text-muted mb-0 small">Data-driven insights across all operations</p>
+      <div className="d-flex justify-content-between align-items-start align-items-md-center mb-4 flex-column flex-md-row gap-3">
+        <div>
+          <h2 className="mb-1">Reports & Analytics</h2>
+          <p className="text-muted mb-0 small">Data-driven insights across all operations</p>
+        </div>
+
+        {/* Year Filter Dropdown */}
+        <div className="d-flex align-items-center gap-2">
+          <Calendar size={16} style={{ color: 'var(--nh-primary)', flexShrink: 0 }} />
+          <select
+            id="year-filter"
+            className="form-select form-select-sm"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            style={{
+              width: 'auto',
+              minWidth: 130,
+              borderColor: 'var(--nh-primary)',
+              color: 'var(--nh-primary)',
+              fontWeight: 600,
+              fontSize: '0.85rem',
+            }}
+          >
+            {YEAR_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <ul className="nav nav-tabs mb-4">
@@ -199,42 +299,50 @@ export default function Reports() {
           </div>
           <div className="col-md-3">
             <div className="kpi-card text-center">
-              <div className="kpi-label">Total Residents</div>
-              <div className="kpi-value" style={{ color: 'var(--nh-accent)' }}>{residents.length}</div>
+              <div className="kpi-label">Residents ({yearLabel(selectedYear)})</div>
+              <div className="kpi-value" style={{ color: 'var(--nh-accent)' }}>{filteredResidents.length}</div>
             </div>
           </div>
           <div className="col-md-3">
             <div className="kpi-card text-center">
-              <div className="kpi-label">Safehouses</div>
-              <div className="kpi-value" style={{ color: 'var(--nh-success)' }}>{safehouses.length}</div>
+              <div className="kpi-label">Reintegration Rate</div>
+              <div className="kpi-value" style={{ color: 'var(--nh-success)' }}>{reintegrationStats.rate}%</div>
             </div>
           </div>
           <div className="col-md-8">
             <div className="nh-card p-4">
-              <h5 className="fw-bold mb-3">Donations Over Time</h5>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={donationByMonth}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v) => `$${Number(v).toLocaleString()}`} />
-                  <Line type="monotone" dataKey="amount" stroke="#B85C38" strokeWidth={2} dot={{ fill: '#B85C38' }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <h5 className="fw-bold mb-3">Donations Over Time — {yearLabel(selectedYear)}</h5>
+              {donationByMonth.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={donationByMonth}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v) => `$${Number(v).toLocaleString()}`} />
+                    <Line type="monotone" dataKey="amount" stroke="#B85C38" strokeWidth={2} dot={{ fill: '#B85C38' }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-muted text-center py-4">No donation data for {yearLabel(selectedYear)}</p>
+              )}
             </div>
           </div>
           <div className="col-md-4">
             <div className="nh-card p-4 h-100">
-              <h5 className="fw-bold mb-3">Resident Status</h5>
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie data={statusChart} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                    {statusChart.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip />
-                  <Legend wrapperStyle={{ fontSize: '0.7rem' }} />
-                </PieChart>
-              </ResponsiveContainer>
+              <h5 className="fw-bold mb-3">Resident Status — {yearLabel(selectedYear)}</h5>
+              {statusChart.length > 0 ? (
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie data={statusChart} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                      {statusChart.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip />
+                    <Legend wrapperStyle={{ fontSize: '0.7rem' }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-muted text-center py-4">No resident data for {yearLabel(selectedYear)}</p>
+              )}
             </div>
           </div>
         </div>
@@ -244,16 +352,20 @@ export default function Reports() {
         <div className="row g-4">
           <div className="col-md-8">
             <div className="nh-card p-4">
-              <h5 className="fw-bold mb-3">Monthly Donation Volume</h5>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={donationByMonth}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip formatter={(v) => `$${Number(v).toLocaleString()}`} />
-                  <Bar dataKey="amount" fill="#B85C38" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <h5 className="fw-bold mb-3">Monthly Donation Volume — {yearLabel(selectedYear)}</h5>
+              {donationByMonth.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={donationByMonth}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip formatter={(v) => `$${Number(v).toLocaleString()}`} />
+                    <Bar dataKey="amount" fill="#B85C38" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-muted text-center py-4">No donation data for {yearLabel(selectedYear)}</p>
+              )}
             </div>
           </div>
           <div className="col-md-4">
@@ -275,16 +387,20 @@ export default function Reports() {
           </div>
           <div className="col-12">
             <div className="nh-card p-4">
-              <h5 className="fw-bold mb-3">Donation Count by Month</h5>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={donationByMonth}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="count" stroke="#1B6B6D" strokeWidth={2} dot={{ fill: '#1B6B6D' }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <h5 className="fw-bold mb-3">Donation Count by Month — {yearLabel(selectedYear)}</h5>
+              {donationByMonth.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={donationByMonth}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="count" stroke="#1B6B6D" strokeWidth={2} dot={{ fill: '#1B6B6D' }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-muted text-center py-4">No donation data for {yearLabel(selectedYear)}</p>
+              )}
             </div>
           </div>
         </div>
@@ -292,37 +408,65 @@ export default function Reports() {
 
       {tab === 'residents' && (
         <div className="row g-4">
+          {/* Reintegration Success KPI */}
+          <div className="col-12">
+            <div className="nh-card p-4 d-flex align-items-center gap-4 flex-wrap">
+              <div>
+                <div className="text-muted small">Reintegration Success Rate — {yearLabel(selectedYear)}</div>
+                <div className="fw-bold" style={{ fontSize: '2rem', color: reintegrationStats.rate >= 50 ? 'var(--nh-success)' : 'var(--nh-danger)' }}>
+                  {reintegrationStats.rate}%
+                </div>
+              </div>
+              <div style={{ borderLeft: '1px solid #E8E0D8', paddingLeft: 16 }}>
+                <div className="text-muted small">Total Residents</div>
+                <div className="fw-bold" style={{ fontSize: '1.5rem' }}>{reintegrationStats.total}</div>
+              </div>
+              <div style={{ borderLeft: '1px solid #E8E0D8', paddingLeft: 16 }}>
+                <div className="text-muted small">Successfully Reintegrated</div>
+                <div className="fw-bold" style={{ fontSize: '1.5rem', color: 'var(--nh-success)' }}>{reintegrationStats.reintegrated}</div>
+              </div>
+            </div>
+          </div>
+
           <div className="col-md-6">
             <div className="nh-card p-4">
-              <h5 className="fw-bold mb-3">By Case Status</h5>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie data={statusChart} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                    {statusChart.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
+              <h5 className="fw-bold mb-3">By Case Status — {yearLabel(selectedYear)}</h5>
+              {statusChart.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie data={statusChart} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                      {statusChart.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-muted text-center py-4">No resident data for {yearLabel(selectedYear)}</p>
+              )}
             </div>
           </div>
           <div className="col-md-6">
             <div className="nh-card p-4">
-              <h5 className="fw-bold mb-3">By Case Category</h5>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={categoryChart} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" />
-                  <XAxis type="number" tick={{ fontSize: 11 }} />
-                  <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#1B6B6D" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <h5 className="fw-bold mb-3">By Case Category — {yearLabel(selectedYear)}</h5>
+              {categoryChart.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={categoryChart} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" />
+                    <XAxis type="number" tick={{ fontSize: 11 }} />
+                    <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#1B6B6D" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-muted text-center py-4">No resident data for {yearLabel(selectedYear)}</p>
+              )}
             </div>
           </div>
           <div className="col-12">
             <div className="nh-card p-4">
-              <h5 className="fw-bold mb-3">Status Breakdown</h5>
+              <h5 className="fw-bold mb-3">Status Breakdown — {yearLabel(selectedYear)}</h5>
               <div className="table-responsive">
                 <table className="table table-hover mb-0">
                   <thead>
@@ -333,13 +477,15 @@ export default function Reports() {
                     </tr>
                   </thead>
                   <tbody>
-                    {statusChart.map((s) => (
+                    {statusChart.length > 0 ? statusChart.map((s) => (
                       <tr key={s.name}>
                         <td className="small">{s.name}</td>
                         <td className="small fw-semibold">{s.value}</td>
-                        <td className="small">{residents.length > 0 ? Math.round((s.value / residents.length) * 100) : 0}%</td>
+                        <td className="small">{filteredResidents.length > 0 ? Math.round((s.value / filteredResidents.length) * 100) : 0}%</td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr><td colSpan={3} className="text-muted text-center py-3">No data for {yearLabel(selectedYear)}</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -354,7 +500,7 @@ export default function Reports() {
             <div className="nh-card p-4">
               <h5 className="fw-bold mb-3">Safehouse Capacity Comparison</h5>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={safehouses.map((s) => ({ name: s.name.length > 20 ? s.name.slice(0, 20) + '...' : s.name, Current: s.currentResidents, Capacity: s.capacity }))}>
+                <BarChart data={safehousePerformance}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" />
                   <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} />
@@ -366,6 +512,29 @@ export default function Reports() {
               </ResponsiveContainer>
             </div>
           </div>
+
+          {/* Intake & Reintegration per Safehouse — year-filtered */}
+          <div className="col-12">
+            <div className="nh-card p-4">
+              <h5 className="fw-bold mb-3">Safehouse Intake & Reintegration — {yearLabel(selectedYear)}</h5>
+              {safehousePerformance.some((s) => s.Intake > 0 || s.Reintegrated > 0) ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={safehousePerformance}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" />
+                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 11 }} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="Intake" fill="#1B6B6D" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Reintegrated" fill="#2D8659" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-muted text-center py-4">No intake/reintegration data for {yearLabel(selectedYear)}</p>
+              )}
+            </div>
+          </div>
+
           <div className="col-12">
             <div className="nh-card p-4">
               <h5 className="fw-bold mb-3">Safehouse Details</h5>

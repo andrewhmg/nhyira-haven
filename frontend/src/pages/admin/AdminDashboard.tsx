@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getDashboardOverview, getDashboardMetrics, getSupporters, getResidents } from '../../services/api';
-import type { DashboardOverview, DashboardMetrics, Supporter, Resident } from '../../types/api';
+import type { DashboardOverview, DashboardMetrics, Supporter, Resident, HomeVisitation } from '../../types/api';
 import KPICard from '../../components/common/KPICard';
 import StatusBadge from '../../components/common/StatusBadge';
 import { buildDonorFeatures, buildResidentFeatures, predictChurnRisk, predictEarlyWarning, predictReintegrationReadiness } from '../../services/mlApi';
-import { Users, AlertTriangle, DollarSign, Activity, Plus, ClipboardList, Eye, Brain, Shield, TrendingUp } from 'lucide-react';
+import { Users, AlertTriangle, DollarSign, Activity, Plus, ClipboardList, Eye, Brain, Shield, TrendingUp, Calendar, MapPin, User } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -13,6 +13,10 @@ import {
 
 const COLORS = ['#B85C38', '#1B6B6D', '#E8A838', '#2D8659', '#8B5CF6', '#C0392B'];
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+interface UpcomingConference extends HomeVisitation {
+  residentName: string;
+}
 
 export default function AdminDashboard() {
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
@@ -23,6 +27,8 @@ export default function AdminDashboard() {
   const [mlRedRiskCount, setMlRedRiskCount] = useState<number | null>(null);
   const [mlNearReintegration, setMlNearReintegration] = useState<number | null>(null);
   const [mlLoading, setMlLoading] = useState(true);
+  const [upcomingConferences, setUpcomingConferences] = useState<UpcomingConference[]>([]);
+  const [conferencesLoading, setConferencesLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -75,6 +81,33 @@ export default function AdminDashboard() {
       setMlLoading(false);
     };
     runML();
+
+    // Fetch upcoming case conferences
+    getResidents()
+      .then((residents: Resident[]) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const conferences: UpcomingConference[] = [];
+        residents.forEach((r) => {
+          r.homeVisitations?.forEach((hv) => {
+            if (
+              hv.visitType.toLowerCase().includes('case conference') &&
+              new Date(hv.visitDate) > today
+            ) {
+              conferences.push({
+                ...hv,
+                residentName: `${r.firstName} ${r.lastName}`,
+              });
+            }
+          });
+        });
+        conferences.sort(
+          (a, b) => new Date(a.visitDate).getTime() - new Date(b.visitDate).getTime()
+        );
+        setUpcomingConferences(conferences);
+      })
+      .catch(() => { /* ignore */ })
+      .finally(() => setConferencesLoading(false));
   }, []);
 
   if (loading) {
@@ -292,6 +325,62 @@ export default function AdminDashboard() {
             ) : (
               <p className="text-muted small text-center">No data</p>
             )}
+          </div>
+
+          {/* Upcoming Case Conferences */}
+          <div className="nh-card soft-panel p-4 mb-4">
+            <h6 className="fw-bold mb-3 d-flex align-items-center gap-2">
+              <Calendar size={16} style={{ color: 'var(--nh-secondary)' }} />
+              Upcoming Case Conferences
+            </h6>
+            {conferencesLoading ? (
+              <div className="text-center py-3">
+                <div className="spinner-border spinner-border-sm" style={{ color: 'var(--nh-primary)' }} />
+              </div>
+            ) : upcomingConferences.length === 0 ? (
+              <p className="text-muted small text-center py-3 mb-0">No upcoming conferences</p>
+            ) : (
+              <div className="d-flex flex-column gap-1">
+                {upcomingConferences.slice(0, 5).map((conf) => (
+                  <div
+                    key={conf.id}
+                    className="d-flex flex-column gap-1 py-2"
+                    style={{ borderBottom: '1px solid var(--nh-border, #E8E0D8)' }}
+                  >
+                    <div className="d-flex justify-content-between align-items-center">
+                      <span className="small fw-semibold" style={{ color: 'var(--nh-primary)' }}>
+                        {conf.residentName}
+                      </span>
+                      <span className="badge badge-teal" style={{ fontSize: '0.7rem' }}>
+                        {new Date(conf.visitDate).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                    <div className="d-flex gap-3" style={{ fontSize: '0.75rem' }}>
+                      {conf.visitorName && (
+                        <span className="text-muted d-flex align-items-center gap-1">
+                          <User size={10} /> {conf.visitorName}
+                        </span>
+                      )}
+                      {conf.location && (
+                        <span className="text-muted d-flex align-items-center gap-1">
+                          <MapPin size={10} /> {conf.location}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Link
+              to="/admin/home-visitations"
+              className="btn btn-sm btn-outline-primary w-100 mt-3"
+            >
+              View All Conferences
+            </Link>
           </div>
 
           {/* Quick Links */}

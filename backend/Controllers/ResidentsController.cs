@@ -59,6 +59,7 @@ public class ResidentsController : ControllerBase
     public async Task<ActionResult<Resident>> GetResident(int id)
     {
         var resident = await _context.Residents
+            .AsNoTracking()
             .Include(r => r.Safehouse)
             .Include(r => r.ProcessRecordings)
             .Include(r => r.HomeVisitations)
@@ -66,6 +67,7 @@ public class ResidentsController : ControllerBase
             .Include(r => r.HealthWellbeingRecords)
             .Include(r => r.InterventionPlans)
             .Include(r => r.IncidentReports)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(r => r.Id == id);
 
         if (resident == null)

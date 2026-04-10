@@ -789,7 +789,7 @@ export default function Reports() {
                                 <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" horizontal={false} />
                                 <XAxis type="number" domain={cfg.domain} tick={{ fontSize: 10 }} />
                                 <YAxis type="category" dataKey="name" hide />
-                                <Tooltip formatter={(v: number) => [`${v} ${cfg.unit}`, cfg.label]} />
+                                <Tooltip formatter={(v) => [`${Number(v)} ${cfg.unit}`, cfg.label] as [string, string]} />
                                 <Bar dataKey="value" fill={cfg.color} radius={[0, 4, 4, 0]} />
                               </BarChart>
                             </ResponsiveContainer>

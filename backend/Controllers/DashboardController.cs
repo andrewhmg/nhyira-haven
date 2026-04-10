@@ -88,7 +88,6 @@ public class DashboardController : ControllerBase
     public async Task<ActionResult<object>> GetDashboardMetrics()
     {
         var donationsByMonth = await _context.Donations
-            .Where(d => d.DonationType == "Monetary")
             .GroupBy(d => new { d.DonationDate.Year, d.DonationDate.Month })
             .Select(g => new
             {
@@ -97,9 +96,8 @@ public class DashboardController : ControllerBase
                 Total = g.Sum(d => d.Amount),
                 Count = g.Count()
             })
-            .OrderByDescending(x => x.Year)
-            .ThenByDescending(x => x.Month)
-            .Take(12)
+            .OrderBy(x => x.Year)
+            .ThenBy(x => x.Month)
             .ToListAsync();
 
         var residentsBySafehouse = await _context.Residents

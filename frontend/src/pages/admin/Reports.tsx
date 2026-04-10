@@ -250,7 +250,8 @@ export default function Reports() {
   const donationByMonth = useMemo(() => {
     const raw = metrics?.donationsByMonth ?? [];
     const filtered = yearNum ? raw.filter((d) => d.year === yearNum) : raw;
-    return filtered.map((d) => ({
+    const sorted = [...filtered].sort((a, b) => (a.year - b.year) || (a.month - b.month));
+    return sorted.map((d) => ({
       name: yearNum ? `${MONTH_LABELS[d.month - 1]}` : `${MONTH_LABELS[d.month - 1]} ${d.year}`,
       amount: d.total,
       count: d.count,

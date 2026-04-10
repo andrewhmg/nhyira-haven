@@ -496,7 +496,9 @@ public class DataSeeder
                 Location = cols[5],
                 Summary = cols.Length > 8 ? cols[8] : "Visit conducted", // observations
                 FamilyInteraction = cols.Length > 9 ? cols[9] : null, // family_cooperation_level
-                SafetyConcerns = cols.Length > 10 ? cols[10] : null,
+                SafetyConcerns = cols.Length > 10 && cols[10]?.Trim().Equals("True", StringComparison.OrdinalIgnoreCase) == true
+                    ? "Safety concerns noted"
+                    : null,
                 Recommendations = cols.Length > 12 ? cols[12] : null, // follow_up_notes
                 FollowUpNeeded = cols.Length > 11 && cols[11]?.Trim().Equals("True", StringComparison.OrdinalIgnoreCase) == true
             });

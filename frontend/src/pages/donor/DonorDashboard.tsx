@@ -189,8 +189,8 @@ export default function DonorDashboard() {
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
-                    <YAxis tickFormatter={v => `$${v}`} />
-                    <Tooltip formatter={(v: number) => [`$${v.toLocaleString()}`, 'Amount']} />
+                    <YAxis tickFormatter={(v: number) => `$${v}`} />
+                    <Tooltip formatter={(v) => [`$${Number(v).toLocaleString()}`, 'Amount']} />
                     <Bar dataKey="total" fill="var(--nh-primary)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -212,12 +212,12 @@ export default function DonorDashboard() {
                 <>
                   <ResponsiveContainer width="100%" height={200}>
                     <PieChart>
-                      <Pie data={impact.allocations} dataKey="amount" nameKey="category" cx="50%" cy="50%" outerRadius={80} label={({ category }) => category}>
+                      <Pie data={impact.allocations} dataKey="amount" nameKey="category" cx="50%" cy="50%" outerRadius={80} label={({ name }) => name}>
                         {impact.allocations.map((_, i) => (
                           <Cell key={i} fill={COLORS[i % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip formatter={(v: number) => `$${v.toLocaleString()}`} />
+                      <Tooltip formatter={(v) => `$${Number(v).toLocaleString()}`} />
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="mt-2 w-100">

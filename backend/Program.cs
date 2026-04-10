@@ -173,6 +173,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseHttpsRedirection();
+app.UseHsts();
+
 app.UseCors("AllowFrontend");
 
 // Security Headers

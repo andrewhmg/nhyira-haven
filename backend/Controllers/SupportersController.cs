@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NhyiraHaven.Data;
@@ -7,6 +8,7 @@ namespace NhyiraHaven.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin,Staff")]
 public class SupportersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -78,6 +80,7 @@ public class SupportersController : ControllerBase
 
     // POST: api/supporters
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Supporter>> CreateSupporter(Supporter supporter)
     {
         _context.Supporters.Add(supporter);
@@ -88,6 +91,7 @@ public class SupportersController : ControllerBase
 
     // PUT: api/supporters/5
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateSupporter(int id, Supporter supporter)
     {
         if (id != supporter.Id)
@@ -118,6 +122,7 @@ public class SupportersController : ControllerBase
 
     // DELETE: api/supporters/5
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteSupporter(int id)
     {
         var supporter = await _context.Supporters.FindAsync(id);

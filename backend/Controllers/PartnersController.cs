@@ -8,6 +8,7 @@ namespace NhyiraHaven.Controllers;
 
 [ApiController]
 [Route("api/partners")]
+[Authorize(Roles = "Admin,Staff")]
 public class PartnersController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -32,6 +33,7 @@ public class PartnersController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Partner>> PostPartner(Partner partner)
     {
         _context.Partners.Add(partner);

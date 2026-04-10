@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NhyiraHaven.Data;
@@ -7,6 +8,7 @@ namespace NhyiraHaven.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class DonationsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -18,6 +20,7 @@ public class DonationsController : ControllerBase
 
     // GET: api/donations
     [HttpGet]
+    [Authorize(Roles = "Admin,Staff,Donor")]
     public async Task<ActionResult<IEnumerable<Donation>>> GetDonations(
         [FromQuery] int? supporterId = null,
         [FromQuery] string? type = null,
@@ -56,6 +59,7 @@ public class DonationsController : ControllerBase
 
     // GET: api/donations/5
     [HttpGet("{id}")]
+    [Authorize(Roles = "Admin,Staff,Donor")]
     public async Task<ActionResult<Donation>> GetDonation(int id)
     {
         var donation = await _context.Donations
@@ -74,6 +78,7 @@ public class DonationsController : ControllerBase
 
     // GET: api/donations/stats
     [HttpGet("stats")]
+    [Authorize(Roles = "Admin,Staff")]
     public async Task<ActionResult<object>> GetDonationStats()
     {
         var totalAmount = await _context.Donations
@@ -104,6 +109,7 @@ public class DonationsController : ControllerBase
 
     // POST: api/donations
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Donation>> CreateDonation(Donation donation)
     {
         _context.Donations.Add(donation);
@@ -114,6 +120,7 @@ public class DonationsController : ControllerBase
 
     // PUT: api/donations/5
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateDonation(int id, Donation donation)
     {
         if (id != donation.Id)
@@ -144,6 +151,7 @@ public class DonationsController : ControllerBase
 
     // DELETE: api/donations/5
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteDonation(int id)
     {
         var donation = await _context.Donations.FindAsync(id);

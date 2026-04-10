@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NhyiraHaven.Data;
@@ -7,6 +8,7 @@ namespace NhyiraHaven.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Admin,Staff")]
 public class SafehousesController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -67,6 +69,7 @@ public class SafehousesController : ControllerBase
 
     // POST: api/safehouses
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<Safehouse>> CreateSafehouse(Safehouse safehouse)
     {
         _context.Safehouses.Add(safehouse);
@@ -77,6 +80,7 @@ public class SafehousesController : ControllerBase
 
     // PUT: api/safehouses/5
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateSafehouse(int id, Safehouse safehouse)
     {
         if (id != safehouse.Id)
@@ -107,6 +111,7 @@ public class SafehousesController : ControllerBase
 
     // DELETE: api/safehouses/5
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteSafehouse(int id)
     {
         var safehouse = await _context.Safehouses.FindAsync(id);

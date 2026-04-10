@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NhyiraHaven.Data;
@@ -7,6 +8,7 @@ namespace NhyiraHaven.Controllers;
 
 [ApiController]
 [Route("api/partner-assignments")]
+[Authorize(Roles = "Admin,Staff")]
 public class PartnerAssignmentsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -31,6 +33,7 @@ public class PartnerAssignmentsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<PartnerAssignment>> PostPartnerAssignment(PartnerAssignment assignment)
     {
         _context.PartnerAssignments.Add(assignment);

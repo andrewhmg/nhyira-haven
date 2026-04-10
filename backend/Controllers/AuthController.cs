@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -37,6 +38,7 @@ public class AuthController : ControllerBase
 
     // POST: api/auth/register
     [HttpPost("register")]
+    [AllowAnonymous]
     public async Task<ActionResult<AuthResponseDto>> Register([FromBody] RegisterDto model)
     {
         try
@@ -119,6 +121,7 @@ public class AuthController : ControllerBase
 
     // POST: api/auth/login
     [HttpPost("login")]
+    [AllowAnonymous]
     public async Task<ActionResult<AuthResponseDto>> Login([FromBody] LoginDto model)
     {
         try
@@ -264,6 +267,7 @@ public class AuthController : ControllerBase
 
     // GET: api/auth/test-accounts
     [HttpGet("test-accounts")]
+    [AllowAnonymous]
     public ActionResult<object> GetTestAccounts()
     {
         // For IS 414 submission - shows test account credentials
@@ -282,6 +286,7 @@ public class AuthController : ControllerBase
 
     // POST: api/auth/reset-seeded-passwords
     [HttpPost("reset-seeded-passwords")]
+    [AllowAnonymous]
     public async Task<ActionResult<AuthResponseDto>> ResetSeededPasswords()
     {
         try

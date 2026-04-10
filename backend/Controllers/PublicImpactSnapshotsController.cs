@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NhyiraHaven.Data;
@@ -7,6 +8,7 @@ namespace NhyiraHaven.Controllers;
 
 [ApiController]
 [Route("api/public-impact-snapshots")]
+[Authorize(Roles = "Admin,Staff")]
 public class PublicImpactSnapshotsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -31,6 +33,7 @@ public class PublicImpactSnapshotsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<PublicImpactSnapshot>> PostPublicImpactSnapshot(PublicImpactSnapshot snapshot)
     {
         _context.PublicImpactSnapshots.Add(snapshot);

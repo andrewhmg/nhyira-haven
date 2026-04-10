@@ -764,12 +764,61 @@ namespace NhyiraHaven.Migrations
                     b.ToTable("PublicImpactSnapshots", (string)null);
                 });
 
+            modelBuilder.Entity("NhyiraHaven.Models.CaseConference", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<string>("ActionItems")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Attendees")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("ConferenceDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConferenceType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Decisions")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Facilitator")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("NextConferenceDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ResidentId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResidentId");
+
+                    b.ToTable("CaseConferences", (string)null);
+                });
+
             modelBuilder.Entity("NhyiraHaven.Models.Resident", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasAnnotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
+
+                    b.Property<string>("AssignedSocialWorkers")
+                        .HasColumnType("text");
 
                     b.Property<string>("CaseCategory")
                         .IsRequired()
@@ -781,6 +830,9 @@ namespace NhyiraHaven.Migrations
 
                     b.Property<DateTime>("DateOfBirth")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisabilityInfo")
+                        .HasColumnType("text");
 
                     b.Property<string>("FirstName")
                         .IsRequired()
@@ -799,7 +851,19 @@ namespace NhyiraHaven.Migrations
                     b.Property<DateTime>("IntakeDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("Is4PsBeneficiary")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsIndigenous")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsInformalSettler")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSoloParentChild")
                         .HasColumnType("boolean");
 
                     b.Property<string>("LastName")
@@ -1159,6 +1223,17 @@ namespace NhyiraHaven.Migrations
                     b.Navigation("Donation");
                 });
 
+            modelBuilder.Entity("NhyiraHaven.Models.CaseConference", b =>
+                {
+                    b.HasOne("NhyiraHaven.Models.Resident", "Resident")
+                        .WithMany("CaseConferences")
+                        .HasForeignKey("ResidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resident");
+                });
+
             modelBuilder.Entity("NhyiraHaven.Models.IncidentReport", b =>
                 {
                     b.HasOne("NhyiraHaven.Models.Resident", "Resident")
@@ -1267,6 +1342,8 @@ namespace NhyiraHaven.Migrations
 
             modelBuilder.Entity("NhyiraHaven.Models.Resident", b =>
                 {
+                    b.Navigation("CaseConferences");
+
                     b.Navigation("EducationRecords");
 
                     b.Navigation("HealthWellbeingRecords");

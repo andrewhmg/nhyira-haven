@@ -84,41 +84,48 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .WithOne(da => da.Donation)
             .HasForeignKey(da => da.DonationId);
 
-        // Resident relationships
+        // Resident relationships (cascade delete child records when resident is removed)
         modelBuilder.Entity<Resident>()
             .HasMany(r => r.ProcessRecordings)
             .WithOne(pr => pr.Resident)
-            .HasForeignKey(pr => pr.ResidentId);
+            .HasForeignKey(pr => pr.ResidentId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Resident>()
             .HasMany(r => r.HomeVisitations)
             .WithOne(hv => hv.Resident)
-            .HasForeignKey(hv => hv.ResidentId);
+            .HasForeignKey(hv => hv.ResidentId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Resident>()
             .HasMany(r => r.EducationRecords)
             .WithOne(er => er.Resident)
-            .HasForeignKey(er => er.ResidentId);
+            .HasForeignKey(er => er.ResidentId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Resident>()
             .HasMany(r => r.HealthWellbeingRecords)
             .WithOne(hwr => hwr.Resident)
-            .HasForeignKey(hwr => hwr.ResidentId);
+            .HasForeignKey(hwr => hwr.ResidentId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Resident>()
             .HasMany(r => r.InterventionPlans)
             .WithOne(ip => ip.Resident)
-            .HasForeignKey(ip => ip.ResidentId);
+            .HasForeignKey(ip => ip.ResidentId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Resident>()
             .HasMany(r => r.IncidentReports)
             .WithOne(ir => ir.Resident)
-            .HasForeignKey(ir => ir.ResidentId);
+            .HasForeignKey(ir => ir.ResidentId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         modelBuilder.Entity<Resident>()
             .HasMany(r => r.CaseConferences)
             .WithOne(cc => cc.Resident)
-            .HasForeignKey(cc => cc.ResidentId);
+            .HasForeignKey(cc => cc.ResidentId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // Social Media relationships
         modelBuilder.Entity<Donation>()

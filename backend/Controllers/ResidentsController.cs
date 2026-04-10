@@ -153,7 +153,16 @@ public class ResidentsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> DeleteResident(int id)
     {
-        var resident = await _context.Residents.FindAsync(id);
+        var resident = await _context.Residents
+            .Include(r => r.ProcessRecordings)
+            .Include(r => r.HomeVisitations)
+            .Include(r => r.EducationRecords)
+            .Include(r => r.HealthWellbeingRecords)
+            .Include(r => r.InterventionPlans)
+            .Include(r => r.IncidentReports)
+            .Include(r => r.CaseConferences)
+            .FirstOrDefaultAsync(r => r.Id == id);
+
         if (resident == null)
         {
             return NotFound();

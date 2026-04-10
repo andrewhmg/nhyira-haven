@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getResident, getResidentTimeline, deleteResident } from '../../services/api';
-import type { Resident } from '../../types/api';
+import { getResident, getResidentTimeline, deleteResident, updateResident, getSafehouses } from '../../services/api';
+import type { Resident, Safehouse } from '../../types/api';
 import StatusBadge from '../../components/common/StatusBadge';
 import ConfirmModal from '../../components/common/ConfirmModal';
-import { ArrowLeft, Trash2, Calendar, User, MapPin } from 'lucide-react';
+import { ArrowLeft, Trash2, Pencil, Calendar, User, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import MLInsightPanel, { MLMetric, MLFactorBar } from '../../components/ml/MLInsightPanel';
 import { getResidentMLInsights, type EarlyWarningResult, type ReintegrationResult, type IncidentRiskResult, type ReintegrationReadinessResult } from '../../services/mlApi';
@@ -35,6 +35,82 @@ export default function ResidentDetail() {
   } | null>(null);
   const [mlLoading, setMlLoading] = useState(true);
   const [mlError, setMlError] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [safehouses, setSafehouses] = useState<Safehouse[]>([]);
+  const [editForm, setEditForm] = useState({
+    caseNumber: '', firstName: '', lastName: '', dateOfBirth: '', gender: 'Female',
+    safehouseId: '', intakeDate: '', caseCategory: '', referralSource: '',
+    guardianName: '', guardianContact: '', status: 'Active', notes: '',
+    reintegrationDate: '', disabilityInfo: '', assignedSocialWorkers: '',
+    is4PsBeneficiary: false, isSoloParentChild: false, isIndigenous: false, isInformalSettler: false,
+  });
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  const openEditModal = (r: Resident) => {
+    setEditForm({
+      caseNumber: r.caseNumber,
+      firstName: r.firstName,
+      lastName: r.lastName,
+      dateOfBirth: r.dateOfBirth?.split('T')[0] || '',
+      gender: r.gender,
+      safehouseId: String(r.safehouseId),
+      intakeDate: r.intakeDate?.split('T')[0] || '',
+      caseCategory: r.caseCategory,
+      referralSource: r.referralSource,
+      guardianName: r.guardianName || '',
+      guardianContact: r.guardianContact || '',
+      status: r.status,
+      notes: r.notes || '',
+      reintegrationDate: r.reintegrationDate?.split('T')[0] || '',
+      disabilityInfo: r.disabilityInfo || '',
+      assignedSocialWorkers: r.assignedSocialWorkers || '',
+      is4PsBeneficiary: r.is4PsBeneficiary ?? false,
+      isSoloParentChild: r.isSoloParentChild ?? false,
+      isIndigenous: r.isIndigenous ?? false,
+      isInformalSettler: r.isInformalSettler ?? false,
+    });
+    if (!safehouses.length) getSafehouses().then(setSafehouses).catch(() => {});
+    setShowEdit(true);
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resident) return;
+    setEditSubmitting(true);
+    try {
+      await updateResident(resident.id, {
+        id: resident.id,
+        caseNumber: editForm.caseNumber,
+        firstName: editForm.firstName,
+        lastName: editForm.lastName,
+        dateOfBirth: editForm.dateOfBirth,
+        gender: editForm.gender,
+        safehouseId: Number(editForm.safehouseId),
+        intakeDate: editForm.intakeDate,
+        caseCategory: editForm.caseCategory,
+        referralSource: editForm.referralSource,
+        guardianName: editForm.guardianName || undefined,
+        guardianContact: editForm.guardianContact || undefined,
+        status: editForm.status,
+        notes: editForm.notes || undefined,
+        reintegrationDate: editForm.reintegrationDate || undefined,
+        disabilityInfo: editForm.disabilityInfo || undefined,
+        assignedSocialWorkers: editForm.assignedSocialWorkers || undefined,
+        is4PsBeneficiary: editForm.is4PsBeneficiary,
+        isSoloParentChild: editForm.isSoloParentChild,
+        isIndigenous: editForm.isIndigenous,
+        isInformalSettler: editForm.isInformalSettler,
+        isActive: editForm.status === 'Active',
+      });
+      setShowEdit(false);
+      const updated = await getResident(resident.id);
+      setResident(updated);
+    } catch {
+      alert('Failed to update resident. Ensure you have admin permissions.');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -139,9 +215,14 @@ export default function ResidentDetail() {
               </div>
             </div>
           </div>
-          <button className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" onClick={() => setShowDelete(true)}>
-            <Trash2 size={14} /> Delete
-          </button>
+          <div className="d-flex gap-2">
+            <button className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" onClick={() => openEditModal(resident)}>
+              <Pencil size={14} /> Edit
+            </button>
+            <button className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1" onClick={() => setShowDelete(true)}>
+              <Trash2 size={14} /> Delete
+            </button>
+          </div>
         </div>
 
         {/* Extra details */}
@@ -415,6 +496,154 @@ export default function ResidentDetail() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {showEdit && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content">
+              <div className="modal-header border-0">
+                <h5 className="modal-title fw-bold">Edit Resident</h5>
+                <button className="btn-close" onClick={() => setShowEdit(false)} />
+              </div>
+              <form onSubmit={handleEdit}>
+                <div className="modal-body">
+                  <div className="row g-3">
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Case Number *</label>
+                      <input type="text" className="form-control form-control-sm" required
+                        value={editForm.caseNumber} onChange={e => setEditForm({ ...editForm, caseNumber: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">First Name *</label>
+                      <input type="text" className="form-control form-control-sm" required
+                        value={editForm.firstName} onChange={e => setEditForm({ ...editForm, firstName: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Last Name *</label>
+                      <input type="text" className="form-control form-control-sm" required
+                        value={editForm.lastName} onChange={e => setEditForm({ ...editForm, lastName: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Date of Birth *</label>
+                      <input type="date" className="form-control form-control-sm" required
+                        value={editForm.dateOfBirth} onChange={e => setEditForm({ ...editForm, dateOfBirth: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Gender *</label>
+                      <select className="form-select form-select-sm" required value={editForm.gender}
+                        onChange={e => setEditForm({ ...editForm, gender: e.target.value })}>
+                        <option value="Female">Female</option>
+                        <option value="Male">Male</option>
+                      </select>
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Safehouse *</label>
+                      <select className="form-select form-select-sm" required value={editForm.safehouseId}
+                        onChange={e => setEditForm({ ...editForm, safehouseId: e.target.value })}>
+                        <option value="">Select...</option>
+                        {safehouses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Intake Date *</label>
+                      <input type="date" className="form-control form-control-sm" required
+                        value={editForm.intakeDate} onChange={e => setEditForm({ ...editForm, intakeDate: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Case Category *</label>
+                      <select className="form-select form-select-sm" required value={editForm.caseCategory}
+                        onChange={e => setEditForm({ ...editForm, caseCategory: e.target.value })}>
+                        <option value="">Select...</option>
+                        <option>Trafficked</option>
+                        <option>Physical Abuse</option>
+                        <option>Neglected</option>
+                        <option>Sexual Abuse</option>
+                        <option>Other</option>
+                      </select>
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Referral Source *</label>
+                      <input type="text" className="form-control form-control-sm" required
+                        value={editForm.referralSource} onChange={e => setEditForm({ ...editForm, referralSource: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Status</label>
+                      <select className="form-select form-select-sm" value={editForm.status}
+                        onChange={e => setEditForm({ ...editForm, status: e.target.value })}>
+                        <option>Active</option>
+                        <option>Reintegrated</option>
+                        <option>Transferred</option>
+                        <option>Closed</option>
+                      </select>
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Reintegration Date</label>
+                      <input type="date" className="form-control form-control-sm"
+                        value={editForm.reintegrationDate} onChange={e => setEditForm({ ...editForm, reintegrationDate: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Assigned Social Workers</label>
+                      <input type="text" className="form-control form-control-sm"
+                        value={editForm.assignedSocialWorkers} onChange={e => setEditForm({ ...editForm, assignedSocialWorkers: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Guardian Name</label>
+                      <input type="text" className="form-control form-control-sm"
+                        value={editForm.guardianName} onChange={e => setEditForm({ ...editForm, guardianName: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Guardian Contact</label>
+                      <input type="text" className="form-control form-control-sm"
+                        value={editForm.guardianContact} onChange={e => setEditForm({ ...editForm, guardianContact: e.target.value })} />
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small fw-semibold">Disability Info</label>
+                      <input type="text" className="form-control form-control-sm"
+                        value={editForm.disabilityInfo} onChange={e => setEditForm({ ...editForm, disabilityInfo: e.target.value })} />
+                    </div>
+                    <div className="col-12">
+                      <label className="form-label small fw-semibold">Socio-Demographic Profile</label>
+                      <div className="d-flex flex-wrap gap-3">
+                        <div className="form-check">
+                          <input className="form-check-input" type="checkbox" id="detail-edit-4ps" checked={editForm.is4PsBeneficiary}
+                            onChange={e => setEditForm({ ...editForm, is4PsBeneficiary: e.target.checked })} />
+                          <label className="form-check-label small" htmlFor="detail-edit-4ps">4Ps Beneficiary</label>
+                        </div>
+                        <div className="form-check">
+                          <input className="form-check-input" type="checkbox" id="detail-edit-solo" checked={editForm.isSoloParentChild}
+                            onChange={e => setEditForm({ ...editForm, isSoloParentChild: e.target.checked })} />
+                          <label className="form-check-label small" htmlFor="detail-edit-solo">Solo Parent Child</label>
+                        </div>
+                        <div className="form-check">
+                          <input className="form-check-input" type="checkbox" id="detail-edit-indigenous" checked={editForm.isIndigenous}
+                            onChange={e => setEditForm({ ...editForm, isIndigenous: e.target.checked })} />
+                          <label className="form-check-label small" htmlFor="detail-edit-indigenous">Indigenous</label>
+                        </div>
+                        <div className="form-check">
+                          <input className="form-check-input" type="checkbox" id="detail-edit-informal" checked={editForm.isInformalSettler}
+                            onChange={e => setEditForm({ ...editForm, isInformalSettler: e.target.checked })} />
+                          <label className="form-check-label small" htmlFor="detail-edit-informal">Informal Settler</label>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-12">
+                      <label className="form-label small fw-semibold">Notes</label>
+                      <textarea className="form-control form-control-sm" rows={2}
+                        value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} />
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer border-0">
+                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setShowEdit(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={editSubmitting}>
+                    {editSubmitting ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       )}
 

@@ -5,10 +5,7 @@ import type { DashboardOverview, DashboardMetrics, Safehouse } from '../types/ap
 import { Users, Building2, Heart, TrendingUp } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
 } from 'recharts';
-
-const COLORS = ['#B85C38', '#1B6B6D', '#E8A838', '#2D8659', '#8B5CF6', '#C0392B'];
 
 export default function ImpactDashboard() {
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
@@ -50,11 +47,6 @@ export default function ImpactDashboard() {
     residents: s.currentResidents,
   }));
 
-  const incidentData = metrics?.incidentsByType.map((i) => ({
-    name: i.type,
-    value: i.count,
-  })) ?? [];
-
   return (
     <div className="public-page">
       <section className="hero-section" style={{ padding: '3rem 0' }}>
@@ -85,7 +77,7 @@ export default function ImpactDashboard() {
           </div>
 
           <div className="row g-4 mb-5">
-            <div className="col-md-8">
+            <div className="col-12">
               <div className="nh-card p-4">
                 <h5 className="fw-bold mb-3">Donations Over Time</h5>
                 {donationChartData.length > 0 ? (
@@ -100,26 +92,6 @@ export default function ImpactDashboard() {
                   </ResponsiveContainer>
                 ) : (
                   <p className="text-muted text-center py-5">No donation data available</p>
-                )}
-              </div>
-            </div>
-            <div className="col-md-4">
-              <div className="nh-card p-4 h-100">
-                <h5 className="fw-bold mb-3">By Incident Type</h5>
-                {incidentData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={260}>
-                    <PieChart>
-                      <Pie data={incidentData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
-                        {incidentData.map((_, i) => (
-                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend wrapperStyle={{ fontSize: '0.75rem' }} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <p className="text-muted text-center py-5">No incident data</p>
                 )}
               </div>
             </div>

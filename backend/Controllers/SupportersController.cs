@@ -37,7 +37,7 @@ public class SupportersController : ControllerBase
         }
 
         return await query
-            .Include(s => s.Donations)
+            .AsNoTracking()
             .OrderByDescending(s => s.JoinedDate)
             .ToListAsync();
     }

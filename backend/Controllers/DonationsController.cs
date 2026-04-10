@@ -49,10 +49,12 @@ public class DonationsController : ControllerBase
         }
 
         return await query
+            .AsNoTracking()
             .Include(d => d.Supporter)
             .Include(d => d.InKindDonationItems)
             .Include(d => d.DonationAllocations)
             .OrderByDescending(d => d.DonationDate)
+            .AsSplitQuery()
             .ToListAsync();
     }
 

@@ -805,42 +805,81 @@ export default function Reports() {
           )}
 
           {/* Social Media Strategy Optimizer */}
-          {postConversions.length > 0 && (
+          {postConversions.length > 0 && (() => {
+            const ranked = [...postConversions].sort((a, b) => b.probability - a.probability);
+            const probs = ranked.map((r) => r.probability);
+            const meanProb = probs.reduce((s, p) => s + p, 0) / Math.max(probs.length, 1);
+            const minProb = Math.min(...probs);
+            const maxProb = Math.max(...probs);
+            return (
             <div className="col-md-6">
               <MLInsightPanel title="Social Media Strategy Optimizer" loading={mlLoading}>
-                <p className="small text-muted mb-3">
-                  Model-predicted donation conversion across all platform × post-type combinations,
-                  holding other features at realistic defaults (CTA included, photo media, informative tone, afternoon post).
+                <p className="small text-muted mb-2">
+                  Ranks every platform × post-type combination by the model's predicted
+                  <strong> referral likelihood</strong> — the probability that a post with
+                  these attributes will generate <em>at least one</em> trackable donation
+                  referral. Other features held at realistic defaults (CTA included, photo
+                  media, informative tone, afternoon post).
                 </p>
+                <div
+                  className="small mb-3 p-2"
+                  style={{
+                    backgroundColor: '#FDF6EC',
+                    border: '1px solid #E8D9B8',
+                    borderRadius: 4,
+                    fontSize: '0.7rem',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  <strong>How to read this:</strong> this is a <em>post-level</em> signal,
+                  not a viewer→donor rate. A 70% score does <em>not</em> mean 70% of viewers
+                  donated; it means the model predicts roughly 70% odds that a post with
+                  these attributes produces any referral at all. Rank matters more than the
+                  raw percentage. Average across combos:{' '}
+                  <strong>{(meanProb * 100).toFixed(0)}%</strong> (range{' '}
+                  {(minProb * 100).toFixed(0)}–{(maxProb * 100).toFixed(0)}%).
+                </div>
 
                 <h6 className="small fw-semibold mb-2" style={{ color: 'var(--nh-primary)' }}>Top Content Strategies</h6>
                 <div className="table-responsive mb-3">
                   <table className="table table-sm table-hover mb-0">
                     <thead>
                       <tr>
+                        <th style={{ fontSize: '0.75rem', width: 40 }}>Rank</th>
                         <th style={{ fontSize: '0.75rem' }}>Post Type</th>
                         <th style={{ fontSize: '0.75rem' }}>Platform</th>
-                        <th style={{ fontSize: '0.75rem' }}>Conversion</th>
+                        <th style={{ fontSize: '0.75rem' }} title="Predicted probability that a post with these attributes generates at least one donation referral">Referral Likelihood</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {[...postConversions]
-                        .sort((a, b) => b.probability - a.probability)
-                        .slice(0, 8)
-                        .map((pc, i) => (
+                      {ranked.slice(0, 8).map((pc, i) => {
+                        const aboveAvg = pc.probability >= meanProb;
+                        return (
                           <tr key={i}>
+                            <td>
+                              <span
+                                className="badge"
+                                style={{
+                                  backgroundColor: i === 0 ? '#2D8659' : i < 3 ? '#1B6B6D' : '#6c757d',
+                                  fontSize: '0.7rem',
+                                }}
+                              >
+                                #{i + 1}
+                              </span>
+                            </td>
                             <td className="small">{pc.type}</td>
                             <td className="small">{pc.platform}</td>
                             <td>
                               <div className="d-flex align-items-center gap-2">
                                 <div className="progress flex-grow-1" style={{ height: 6 }}>
-                                  <div className="progress-bar" style={{ width: `${pc.probability * 100}%`, backgroundColor: pc.probability > 0.5 ? '#2D8659' : '#E8A838' }} />
+                                  <div className="progress-bar" style={{ width: `${pc.probability * 100}%`, backgroundColor: aboveAvg ? '#2D8659' : '#E8A838' }} />
                                 </div>
-                                <span className="small" style={{ minWidth: 36, textAlign: 'right' }}>{(pc.probability * 100).toFixed(0)}%</span>
+                                <span className="small text-muted" style={{ minWidth: 36, textAlign: 'right', fontSize: '0.7rem' }} title={`Raw probability: ${(pc.probability * 100).toFixed(1)}%`}>{(pc.probability * 100).toFixed(0)}%</span>
                               </div>
                             </td>
                           </tr>
-                        ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -883,7 +922,8 @@ export default function Reports() {
                 )}
               </MLInsightPanel>
             </div>
-          )}
+            );
+          })()}
         </div>
       )}
     </div>

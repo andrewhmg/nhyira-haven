@@ -48,7 +48,12 @@ def get_models():
         _models['bad_exit_gb'] = load_model('bad_exit_gb_model.joblib')
         _models['bad_exit_features'] = load_model('bad_exit_features.joblib')
         # Social media conversion models
+        # social_gb is a CalibratedClassifierCV wrapping a GradientBoosting —
+        # it exposes predict_proba but not feature_importances_, so we load
+        # social_gb_raw (the underlying GB fit on the same train split) to
+        # surface top factors.
         _models['social_gb'] = load_model('social_conversion_gb_model.joblib')
+        _models['social_gb_raw'] = load_model('social_conversion_gb_raw_model.joblib')
         _models['social_features'] = load_model('social_conversion_features.joblib')
         _models['social_scaler'] = load_model('social_conversion_scaler.joblib')
         _models['social_value_rf'] = load_model('social_conversion_value_model.joblib')
@@ -243,7 +248,19 @@ def predict_post_conversion():
         value_rf = models['social_value_rf']
         estimated_value = float(value_rf.predict(X)[0]) if proba >= 0.5 else 0.0
 
-        importances = dict(zip(feature_names, gb.feature_importances_))
+        # Feature importances live on the raw GB — fall back to the calibrated
+        # wrapper's inner estimators if the raw artifact is missing.
+        gb_raw = models.get('social_gb_raw')
+        if gb_raw is not None and hasattr(gb_raw, 'feature_importances_'):
+            importances = dict(zip(feature_names, gb_raw.feature_importances_))
+        elif hasattr(gb, 'calibrated_classifiers_'):
+            inner = np.mean(
+                [cc.estimator.feature_importances_ for cc in gb.calibrated_classifiers_],
+                axis=0,
+            )
+            importances = dict(zip(feature_names, inner))
+        else:
+            importances = dict(zip(feature_names, getattr(gb, 'feature_importances_', np.zeros(len(feature_names)))))
         top_factors = sorted(importances.items(), key=lambda x: -x[1])[:5]
 
         return jsonify({

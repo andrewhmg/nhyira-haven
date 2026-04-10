@@ -1,21 +1,6 @@
 {
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/assets/*", "*.{css,js,svg,png,jpg,jpeg,gif,ico,woff,woff2,ttf,eot}"]
-  },
-  "routes": [
-    {
-      "route": "/api/*",
-      "allowedRoles": ["anonymous"]
-    },
-    {
-      "route": "/*",
-      "rewrite": "/index.html"
-    }
-  ],
-  "responseOverrides": {
-    "404": {
-      "rewrite": "/index.html"
-    }
+    "exclude": ["/assets/*", "*.js", "*.css", "*.svg", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.ico", "*.woff", "*.woff2", "*.ttf", "*.eot"]
   }
 }

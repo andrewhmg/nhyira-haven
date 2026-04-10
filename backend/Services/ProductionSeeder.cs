@@ -70,16 +70,45 @@ public class ProductionSeeder
         {
             var donations = new List<Donation>
             {
-                new() { SupporterId = 1, Amount = 100, DonationDate = DateTime.UtcNow.AddDays(-5), DonationType = "Recurring" },
-                new() { SupporterId = 2, Amount = 50, DonationDate = DateTime.UtcNow.AddDays(-3), DonationType = "Recurring" },
-                new() { SupporterId = 3, Amount = 10000, DonationDate = DateTime.UtcNow.AddMonths(-2), DonationType = "One-time" },
-                new() { SupporterId = 4, Amount = 25, DonationDate = DateTime.UtcNow.AddDays(-1), DonationType = "Recurring" },
-                new() { SupporterId = 5, Amount = 50000, DonationDate = DateTime.UtcNow.AddMonths(-1), DonationType = "Grant" },
-                new() { SupporterId = 6, Amount = 5000, DonationDate = DateTime.UtcNow.AddDays(-10), DonationType = "Recurring" }
+                new() { SupporterId = 1, Amount = 100, DonationDate = DateTime.UtcNow.AddDays(-5), DonationType = "Recurring", Currency = "USD" },
+                new() { SupporterId = 2, Amount = 50, DonationDate = DateTime.UtcNow.AddDays(-3), DonationType = "Recurring", Currency = "USD" },
+                new() { SupporterId = 3, Amount = 10000, DonationDate = DateTime.UtcNow.AddMonths(-2), DonationType = "One-time", Currency = "USD" },
+                new() { SupporterId = 4, Amount = 25, DonationDate = DateTime.UtcNow.AddDays(-1), DonationType = "Recurring", Currency = "USD" },
+                new() { SupporterId = 5, Amount = 50000, DonationDate = DateTime.UtcNow.AddMonths(-1), DonationType = "Grant", Currency = "USD" },
+                new() { SupporterId = 6, Amount = 5000, DonationDate = DateTime.UtcNow.AddDays(-10), DonationType = "Recurring", Currency = "USD" },
+                // In-kind: rolled-up estimated value on the donation + line items for detail
+                new() { SupporterId = 2, Amount = 3200, DonationDate = DateTime.UtcNow.AddDays(-12), DonationType = "InKind", Currency = "USD", CampaignSource = "Supply drive", Notes = "Hygiene and school supplies" },
+                new() { SupporterId = 4, Amount = 0, DonationDate = DateTime.UtcNow.AddDays(-2), DonationType = "Time", Currency = "USD", Notes = "Pro bono training hours" }
             };
             await _context.Donations.AddRangeAsync(donations);
             await _context.SaveChangesAsync();
-            Console.WriteLine($"✅ Seeded {donations.Count} donations");
+
+            var inKindDonation = donations.First(d => d.DonationType == "InKind");
+            await _context.InKindDonationItems.AddRangeAsync(
+                new InKindDonationItem
+                {
+                    DonationId = inKindDonation.Id,
+                    ItemName = "Hygiene kits",
+                    Category = "Hygiene",
+                    Quantity = 40,
+                    Unit = "kits",
+                    EstimatedValue = 45,
+                    ReceivedDate = DateTime.UtcNow.AddDays(-12),
+                    Notes = "New"
+                },
+                new InKindDonationItem
+                {
+                    DonationId = inKindDonation.Id,
+                    ItemName = "School notebooks",
+                    Category = "SchoolMaterials",
+                    Quantity = 200,
+                    Unit = "pcs",
+                    EstimatedValue = 8,
+                    ReceivedDate = DateTime.UtcNow.AddDays(-12),
+                    Notes = "New"
+                });
+            await _context.SaveChangesAsync();
+            Console.WriteLine($"✅ Seeded {donations.Count} donations (including in-kind) and in-kind line items");
         }
 
         // Seed Public Impact Snapshots (for homepage stats)

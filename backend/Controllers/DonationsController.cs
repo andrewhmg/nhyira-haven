@@ -78,30 +78,119 @@ public class DonationsController : ControllerBase
     [HttpGet("stats")]
     public async Task<ActionResult<object>> GetDonationStats()
     {
-        var totalAmount = await _context.Donations
-            .Where(d => d.DonationType == "Monetary")
-            .SumAsync(d => d.Amount);
-
-        var totalByType = await _context.Donations
-            .GroupBy(d => d.DonationType)
-            .Select(g => new { Type = g.Key, Count = g.Count(), Total = g.Sum(d => d.Amount) })
+        var donations = await _context.Donations
+            .AsNoTracking()
+            .Include(d => d.InKindDonationItems)
             .ToListAsync();
 
-        var recurringCount = await _context.Donations
-            .CountAsync(d => d.IsRecurring);
+        var totalByType = donations
+            .GroupBy(d => string.IsNullOrWhiteSpace(d.DonationType) ? "Unknown" : d.DonationType.Trim())
+            .Select(g => new { Type = g.Key, Count = g.Count(), Total = g.Sum(d => d.Amount) })
+            .OrderByDescending(x => x.Total)
+            .ToList();
 
-        var avgDonation = await _context.Donations
-            .Where(d => d.DonationType == "Monetary")
-            .AverageAsync(d => d.Amount);
+        var catTotals = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["monetary"] = 0,
+            ["inkind"] = 0,
+            ["volunteer"] = 0,
+            ["social"] = 0,
+            ["other"] = 0
+        };
+        var catCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["monetary"] = 0,
+            ["inkind"] = 0,
+            ["volunteer"] = 0,
+            ["social"] = 0,
+            ["other"] = 0
+        };
+
+        foreach (var d in donations)
+        {
+            var cat = BroadDonationCategory(d.DonationType);
+            var itemsValue = InKindLineItemsTotal(d);
+            catCounts[cat]++;
+
+            switch (cat)
+            {
+                case "inkind":
+                    // Lighthouse CSV rolls estimated gift value into Amount; line items are detail (do not add again)
+                    catTotals["inkind"] += d.Amount > 0 ? d.Amount : itemsValue;
+                    break;
+                case "monetary":
+                    catTotals["monetary"] += d.Amount;
+                    AddLinkedInKindLineValue(catTotals, itemsValue);
+                    break;
+                case "volunteer":
+                    catTotals["volunteer"] += d.Amount;
+                    AddLinkedInKindLineValue(catTotals, itemsValue);
+                    break;
+                case "social":
+                    catTotals["social"] += d.Amount;
+                    AddLinkedInKindLineValue(catTotals, itemsValue);
+                    break;
+                default:
+                    catTotals["other"] += d.Amount;
+                    AddLinkedInKindLineValue(catTotals, itemsValue);
+                    break;
+            }
+        }
+
+        var valueByCategory = new[]
+        {
+            new { Key = "monetary", Label = "Monetary (cash)", Total = catTotals["monetary"], Count = catCounts["monetary"] },
+            new { Key = "inkind", Label = "In-kind (goods)", Total = catTotals["inkind"], Count = catCounts["inkind"] },
+            new { Key = "volunteer", Label = "Volunteer time & skills", Total = catTotals["volunteer"], Count = catCounts["volunteer"] },
+            new { Key = "social", Label = "Social / advocacy", Total = catTotals["social"], Count = catCounts["social"] },
+            new { Key = "other", Label = "Other", Total = catTotals["other"], Count = catCounts["other"] },
+        }.Where(x => x.Total > 0).ToList();
+
+        var monetaryLike = donations.Where(d => BroadDonationCategory(d.DonationType) == "monetary").ToList();
+        var totalAmount = catTotals.Values.Sum();
+        var recurringCount = donations.Count(d => d.IsRecurring);
+        var avgDonation = monetaryLike.Count > 0
+            ? monetaryLike.Average(d => d.Amount)
+            : (donations.Count > 0 ? donations.Average(d => d.Amount) : 0);
 
         return new
         {
             TotalAmount = totalAmount,
             TotalByType = totalByType,
+            ValueByCategory = valueByCategory,
             RecurringDonations = recurringCount,
             AverageDonation = avgDonation,
-            TotalDonations = await _context.Donations.CountAsync()
+            TotalDonations = donations.Count
         };
+    }
+
+    private static void AddLinkedInKindLineValue(Dictionary<string, decimal> catTotals, decimal itemsValue)
+    {
+        if (itemsValue > 0)
+            catTotals["inkind"] += itemsValue;
+    }
+
+    private static string BroadDonationCategory(string? donationType)
+    {
+        if (string.IsNullOrWhiteSpace(donationType)) return "other";
+        var t = donationType.Trim();
+        if (t.Equals("Monetary", StringComparison.OrdinalIgnoreCase)) return "monetary";
+        if (t.Equals("Recurring", StringComparison.OrdinalIgnoreCase)) return "monetary";
+        if (t.Equals("One-time", StringComparison.OrdinalIgnoreCase) || t.Equals("OneTime", StringComparison.OrdinalIgnoreCase)) return "monetary";
+        if (t.Equals("Grant", StringComparison.OrdinalIgnoreCase)) return "monetary";
+        if (t.Equals("InKind", StringComparison.OrdinalIgnoreCase) || t.Equals("In-Kind", StringComparison.OrdinalIgnoreCase)) return "inkind";
+        if (t.Equals("Time", StringComparison.OrdinalIgnoreCase) || t.Equals("Skills", StringComparison.OrdinalIgnoreCase)) return "volunteer";
+        if (t.Equals("SocialMedia", StringComparison.OrdinalIgnoreCase)) return "social";
+        return "other";
+    }
+
+    private static decimal InKindLineItemsTotal(Donation d)
+    {
+        if (d.InKindDonationItems == null || d.InKindDonationItems.Count == 0) return 0;
+        decimal sum = 0;
+        foreach (var i in d.InKindDonationItems)
+            sum += i.EstimatedValue * (i.Quantity <= 0 ? 1 : i.Quantity);
+        return sum;
     }
 
     // POST: api/donations

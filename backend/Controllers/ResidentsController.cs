@@ -46,6 +46,8 @@ public class ResidentsController : ControllerBase
             .Include(r => r.Safehouse)
             .Include(r => r.ProcessRecordings)
             .Include(r => r.HomeVisitations)
+            .Include(r => r.InterventionPlans)
+            .Include(r => r.IncidentReports)
             .OrderByDescending(r => r.IntakeDate)
             .ToListAsync();
     }

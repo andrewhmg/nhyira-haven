@@ -33,6 +33,58 @@ function yearLabel(selectedYear: string): string {
   return selectedYear === 'all' ? 'All Years' : selectedYear;
 }
 
+/**
+ * Build feature vector for the social-media conversion model.
+ * Mirrors `social-media-conversion.ipynb`: one-hot categoricals with
+ * `drop_first=True`, plus raw numeric + boolean fields. Dropped baseline
+ * categories (which must NOT be sent as one-hot keys) are:
+ *   platform=Facebook, post_type=Campaign, media_type=Carousel,
+ *   day_of_week=Friday, sentiment_tone=Celebratory,
+ *   content_topic=AwarenessRaising, call_to_action_type=DonateNow
+ */
+function buildSocialFeatures(opts: {
+  platform: string;
+  post_type: string;
+  media_type?: string;
+  day_of_week?: string;
+  sentiment_tone?: string;
+  content_topic?: string;
+  call_to_action_type?: string;
+  post_hour?: number;
+  num_hashtags?: number;
+  caption_length?: number;
+  mentions_count?: number;
+  follower_count_at_post?: number;
+  has_call_to_action?: boolean;
+  features_resident_story?: boolean;
+  is_boosted?: boolean;
+}): Record<string, number> {
+  const f: Record<string, number> = {
+    post_hour: opts.post_hour ?? 13,
+    num_hashtags: opts.num_hashtags ?? 2,
+    caption_length: opts.caption_length ?? 137,
+    mentions_count: opts.mentions_count ?? 0,
+    follower_count_at_post: opts.follower_count_at_post ?? 1543,
+    has_call_to_action: opts.has_call_to_action ? 1 : 0,
+    features_resident_story: opts.features_resident_story ? 1 : 0,
+    is_boosted: opts.is_boosted ? 1 : 0,
+  };
+  const oneHot = (prefix: string, val: string | undefined, baseline: string) => {
+    if (val && val !== baseline) f[`${prefix}_${val}`] = 1;
+  };
+  oneHot('platform', opts.platform, 'Facebook');
+  oneHot('post_type', opts.post_type, 'Campaign');
+  oneHot('media_type', opts.media_type ?? 'Photo', 'Carousel');
+  oneHot('day_of_week', opts.day_of_week ?? 'Tuesday', 'Friday');
+  oneHot('sentiment_tone', opts.sentiment_tone ?? 'Informative', 'Celebratory');
+  oneHot('content_topic', opts.content_topic ?? 'SafehouseLife', 'AwarenessRaising');
+  oneHot('call_to_action_type', opts.call_to_action_type ?? 'LearnMore', 'DonateNow');
+  return f;
+}
+
+const SOCIAL_PLATFORMS = ['Facebook', 'Instagram', 'Twitter', 'WhatsApp', 'TikTok', 'LinkedIn', 'YouTube'];
+const SOCIAL_POST_TYPES = ['Campaign', 'ImpactStory', 'EventPromotion', 'ThankYou', 'EducationalContent', 'FundraisingAppeal'];
+
 export default function Reports() {
   const [tab, setTab] = useState<Tab>('overview');
   const [selectedYear, setSelectedYear] = useState<string>(String(CURRENT_YEAR));
@@ -54,6 +106,8 @@ export default function Reports() {
   const [riskSummary, setRiskSummary] = useState<{ red: number; yellow: number; green: number }>({ red: 0, yellow: 0, green: 0 });
   const [roiResults, setRoiResults] = useState<AllocationROIResult[]>([]);
   const [postConversions, setPostConversions] = useState<Array<{ type: string; platform: string; probability: number; value: number }>>([]);
+  const [leverEffects, setLeverEffects] = useState<Array<{ label: string; delta: number; direction: 'up' | 'down' }>>([]);
+  const [leverBaseline, setLeverBaseline] = useState<number>(0);
 
   useEffect(() => {
     Promise.all([
@@ -116,32 +170,72 @@ export default function Reports() {
         }
         setRoiResults(roiPredictions);
 
-        // Social media conversion analysis
-        const postTypes = ['FundraisingAppeal', 'ImpactStory', 'VolunteerSpotlight', 'EventPromotion', 'EducationalContent'];
-        const platforms = ['Instagram', 'Facebook', 'Twitter'];
-        const conversions: Array<{ type: string; platform: string; probability: number; value: number }> = [];
-        for (const pType of postTypes) {
-          for (const platform of platforms) {
+        // Social media strategy grid — score every platform × post_type combo
+        // using realistic in-distribution defaults (has CTA, Photo, Informative,
+        // afternoon post, median follower count) so the model discriminates
+        // meaningfully between combinations.
+        const gridTasks = SOCIAL_PLATFORMS.flatMap((platform) =>
+          SOCIAL_POST_TYPES.map(async (pType) => {
             try {
-              const features: Record<string, number> = {
-                [`platform_${platform}`]: 1,
-                [`post_type_${pType}`]: 1,
-                likes: 50,
-                shares: 10,
-                comments: 5,
-                reach: 500,
-              };
+              const features = buildSocialFeatures({
+                platform,
+                post_type: pType,
+                has_call_to_action: true,
+              });
               const result = await predictPostConversion(features);
-              conversions.push({
+              return {
                 type: pType.replace(/([A-Z])/g, ' $1').trim(),
                 platform,
                 probability: result.conversion_probability,
                 value: result.estimated_donation_value_php ?? 0,
-              });
-            } catch { /* skip */ }
-          }
-        }
-        setPostConversions(conversions);
+              };
+            } catch {
+              return null;
+            }
+          })
+        );
+        const gridResults = (await Promise.allSettled(gridTasks))
+          .map((r) => (r.status === 'fulfilled' ? r.value : null))
+          .filter((r): r is { type: string; platform: string; probability: number; value: number } => r !== null);
+        setPostConversions(gridResults);
+
+        // Lever impact analysis — take a reference post (Instagram /
+        // FundraisingAppeal, CTA on, everything else at baseline) and measure
+        // the marginal effect of each strategic lever. This tells admins which
+        // single change would most improve their next post.
+        const refOpts = {
+          platform: 'Instagram',
+          post_type: 'FundraisingAppeal',
+          has_call_to_action: true,
+        };
+        const leverConfigs: Array<{ label: string; overrides: Parameters<typeof buildSocialFeatures>[0] }> = [
+          { label: 'Boost the post (paid promotion)',          overrides: { ...refOpts, is_boosted: true } },
+          { label: 'Use an Urgent tone',                       overrides: { ...refOpts, sentiment_tone: 'Urgent' } },
+          { label: 'Feature a resident story',                 overrides: { ...refOpts, features_resident_story: true } },
+          { label: 'Use Video instead of Photo',               overrides: { ...refOpts, media_type: 'Video' } },
+          { label: 'Switch content topic to Donor Impact',     overrides: { ...refOpts, content_topic: 'DonorImpact' } },
+          { label: 'Remove call-to-action',                    overrides: { ...refOpts, has_call_to_action: false } },
+        ];
+        try {
+          const baselineResult = await predictPostConversion(buildSocialFeatures(refOpts));
+          const baselineProba = baselineResult.conversion_probability;
+          setLeverBaseline(baselineProba);
+
+          const leverTasks = leverConfigs.map(async (cfg) => {
+            try {
+              const r = await predictPostConversion(buildSocialFeatures(cfg.overrides));
+              const delta = r.conversion_probability - baselineProba;
+              return { label: cfg.label, delta, direction: (delta >= 0 ? 'up' : 'down') as 'up' | 'down' };
+            } catch {
+              return null;
+            }
+          });
+          const leverResults = (await Promise.allSettled(leverTasks))
+            .map((r) => (r.status === 'fulfilled' ? r.value : null))
+            .filter((r): r is { label: string; delta: number; direction: 'up' | 'down' } => r !== null)
+            .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+          setLeverEffects(leverResults);
+        } catch { /* skip lever analysis if baseline call fails */ }
         setMlLoading(false);
       };
       runMLAnalysis();
@@ -667,42 +761,71 @@ export default function Reports() {
           {roiResults.length > 0 && (
             <div className="col-md-6">
               <MLInsightPanel title="Allocation ROI Predictions" loading={mlLoading}>
-                <p className="small text-muted mb-3">Predicted outcome improvement from $10,000 allocation to each program area</p>
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={roiResults.map((r) => ({
-                    name: r.target_metric.charAt(0).toUpperCase() + r.target_metric.slice(1),
-                    outcome: Number(r.predicted_outcome.toFixed(1)),
-                  }))}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Bar dataKey="outcome" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                <p className="small text-muted mb-3">
+                  Predicted next-month outcome with $10,000 allocated toward each program area.
+                  Each metric uses its own scale — bars are not comparable across panels.
+                </p>
+                {(() => {
+                  const metricConfig: Record<string, { label: string; unit: string; domain: [number, number]; color: string; betterIsHigher: boolean }> = {
+                    education: { label: 'Education Progress', unit: '% (0–100)', domain: [0, 100], color: '#2D8659', betterIsHigher: true },
+                    health:    { label: 'Health Score',       unit: 'score (1–5)', domain: [0, 5],   color: '#3B82F6', betterIsHigher: true },
+                    incidents: { label: 'Incident Count',     unit: 'incidents / month', domain: [0, 10], color: '#E8A838', betterIsHigher: false },
+                  };
+                  return (
+                    <div className="d-flex flex-column gap-3">
+                      {roiResults.map((r) => {
+                        const cfg = metricConfig[r.target_metric] ?? { label: r.target_metric, unit: '', domain: [0, 100] as [number, number], color: '#8B5CF6', betterIsHigher: true };
+                        const value = Number(r.predicted_outcome.toFixed(2));
+                        return (
+                          <div key={r.target_metric}>
+                            <div className="d-flex justify-content-between align-items-baseline mb-1">
+                              <span className="small fw-semibold">{cfg.label}</span>
+                              <span className="small text-muted">
+                                {cfg.unit}{!cfg.betterIsHigher && ' · lower is better'}
+                              </span>
+                            </div>
+                            <ResponsiveContainer width="100%" height={70}>
+                              <BarChart data={[{ name: cfg.label, value }]} layout="vertical" margin={{ top: 4, right: 8, bottom: 4, left: 8 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#E8E0D8" horizontal={false} />
+                                <XAxis type="number" domain={cfg.domain} tick={{ fontSize: 10 }} />
+                                <YAxis type="category" dataKey="name" hide />
+                                <Tooltip formatter={(v: number) => [`${v} ${cfg.unit}`, cfg.label]} />
+                                <Bar dataKey="value" fill={cfg.color} radius={[0, 4, 4, 0]} />
+                              </BarChart>
+                            </ResponsiveContainer>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </MLInsightPanel>
             </div>
           )}
 
-          {/* Social Media Conversion */}
+          {/* Social Media Strategy Optimizer */}
           {postConversions.length > 0 && (
             <div className="col-md-6">
-              <MLInsightPanel title="Social Media Conversion Predictions" loading={mlLoading}>
-                <p className="small text-muted mb-3">Predicted donation conversion probability by post type and platform</p>
-                <div className="table-responsive">
+              <MLInsightPanel title="Social Media Strategy Optimizer" loading={mlLoading}>
+                <p className="small text-muted mb-3">
+                  Model-predicted donation conversion across all platform × post-type combinations,
+                  holding other features at realistic defaults (CTA included, photo media, informative tone, afternoon post).
+                </p>
+
+                <h6 className="small fw-semibold mb-2" style={{ color: 'var(--nh-primary)' }}>Top Content Strategies</h6>
+                <div className="table-responsive mb-3">
                   <table className="table table-sm table-hover mb-0">
                     <thead>
                       <tr>
                         <th style={{ fontSize: '0.75rem' }}>Post Type</th>
                         <th style={{ fontSize: '0.75rem' }}>Platform</th>
-                        <th style={{ fontSize: '0.75rem' }}>Conversion %</th>
-                        <th style={{ fontSize: '0.75rem' }}>Est. Value</th>
+                        <th style={{ fontSize: '0.75rem' }}>Conversion</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {postConversions
+                      {[...postConversions]
                         .sort((a, b) => b.probability - a.probability)
-                        .slice(0, 10)
+                        .slice(0, 8)
                         .map((pc, i) => (
                           <tr key={i}>
                             <td className="small">{pc.type}</td>
@@ -712,15 +835,51 @@ export default function Reports() {
                                 <div className="progress flex-grow-1" style={{ height: 6 }}>
                                   <div className="progress-bar" style={{ width: `${pc.probability * 100}%`, backgroundColor: pc.probability > 0.5 ? '#2D8659' : '#E8A838' }} />
                                 </div>
-                                <span className="small">{(pc.probability * 100).toFixed(0)}%</span>
+                                <span className="small" style={{ minWidth: 36, textAlign: 'right' }}>{(pc.probability * 100).toFixed(0)}%</span>
                               </div>
                             </td>
-                            <td className="small fw-semibold">{pc.value > 0 ? `$${Math.round(pc.value).toLocaleString()}` : '—'}</td>
                           </tr>
                         ))}
                     </tbody>
                   </table>
                 </div>
+
+                {leverEffects.length > 0 && (
+                  <>
+                    <h6 className="small fw-semibold mb-1" style={{ color: 'var(--nh-primary)' }}>Lever Impact Analysis</h6>
+                    <p className="small text-muted mb-2" style={{ fontSize: '0.7rem' }}>
+                      Marginal effect on conversion of changing one feature on a reference post
+                      (Instagram FundraisingAppeal, baseline {(leverBaseline * 100).toFixed(0)}%).
+                      Bars show percentage-point change.
+                    </p>
+                    <div className="d-flex flex-column gap-1">
+                      {leverEffects.map((lev, i) => {
+                        const pp = lev.delta * 100;
+                        const magnitude = Math.min(Math.abs(pp), 60);
+                        const color = lev.direction === 'up' ? '#2D8659' : '#C0392B';
+                        return (
+                          <div key={i} className="d-flex align-items-center gap-2">
+                            <span className="small" style={{ flex: '0 0 55%', fontSize: '0.72rem' }}>{lev.label}</span>
+                            <div className="flex-grow-1 position-relative" style={{ height: 14, backgroundColor: '#F5EFE6', borderRadius: 3 }}>
+                              <div style={{
+                                position: 'absolute',
+                                left: lev.direction === 'up' ? '50%' : `${50 - (magnitude / 60) * 50}%`,
+                                width: `${(magnitude / 60) * 50}%`,
+                                height: '100%',
+                                backgroundColor: color,
+                                borderRadius: 2,
+                              }} />
+                              <div style={{ position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, backgroundColor: '#aaa' }} />
+                            </div>
+                            <span className="small fw-semibold" style={{ flex: '0 0 52px', textAlign: 'right', fontSize: '0.72rem', color }}>
+                              {pp >= 0 ? '+' : ''}{pp.toFixed(0)}pp
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </MLInsightPanel>
             </div>
           )}

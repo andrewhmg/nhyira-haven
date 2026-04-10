@@ -122,19 +122,15 @@ public class DonationsController : ControllerBase
                     break;
                 case "monetary":
                     catTotals["monetary"] += d.Amount;
-                    AddLinkedInKindLineValue(catTotals, itemsValue);
                     break;
                 case "volunteer":
                     catTotals["volunteer"] += d.Amount;
-                    AddLinkedInKindLineValue(catTotals, itemsValue);
                     break;
                 case "social":
                     catTotals["social"] += d.Amount;
-                    AddLinkedInKindLineValue(catTotals, itemsValue);
                     break;
                 default:
                     catTotals["other"] += d.Amount;
-                    AddLinkedInKindLineValue(catTotals, itemsValue);
                     break;
             }
         }
@@ -164,12 +160,6 @@ public class DonationsController : ControllerBase
             AverageDonation = avgDonation,
             TotalDonations = donations.Count
         };
-    }
-
-    private static void AddLinkedInKindLineValue(Dictionary<string, decimal> catTotals, decimal itemsValue)
-    {
-        if (itemsValue > 0)
-            catTotals["inkind"] += itemsValue;
     }
 
     private static string BroadDonationCategory(string? donationType)

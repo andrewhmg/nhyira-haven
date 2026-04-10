@@ -87,18 +87,30 @@ public class DashboardController : ControllerBase
     [HttpGet("metrics")]
     public async Task<ActionResult<object>> GetDashboardMetrics()
     {
-        var donationsByMonth = await _context.Donations
+        var donationsWithItems = await _context.Donations
+            .AsNoTracking()
+            .Include(d => d.InKindDonationItems)
+            .Select(d => new
+            {
+                d.DonationDate,
+                d.Amount,
+                ItemsValue = d.InKindDonationItems
+                    .Sum(i => i.EstimatedValue * (i.Quantity <= 0 ? 1 : i.Quantity))
+            })
+            .ToListAsync();
+
+        var donationsByMonth = donationsWithItems
             .GroupBy(d => new { d.DonationDate.Year, d.DonationDate.Month })
             .Select(g => new
             {
                 Year = g.Key.Year,
                 Month = g.Key.Month,
-                Total = g.Sum(d => d.Amount),
+                Total = g.Sum(d => d.Amount > 0 ? d.Amount : d.ItemsValue),
                 Count = g.Count()
             })
             .OrderBy(x => x.Year)
             .ThenBy(x => x.Month)
-            .ToListAsync();
+            .ToList();
 
         var residentsBySafehouse = await _context.Residents
             .GroupBy(r => r.SafehouseId)

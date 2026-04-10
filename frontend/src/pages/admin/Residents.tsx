@@ -317,8 +317,9 @@ export default function Residents() {
                   setShowCreateForm(false);
                   setCreateForm({ caseNumber: '', firstName: '', lastName: '', dateOfBirth: '', gender: 'Female', safehouseId: '', intakeDate: new Date().toISOString().split('T')[0], caseCategory: '', referralSource: '', guardianName: '', guardianContact: '', status: 'Active', notes: '' });
                   loadData();
-                } catch {
-                  alert('Failed to create resident. Ensure you have admin permissions.');
+                } catch (e) {
+                  const msg = e instanceof Error ? e.message : 'Unknown error';
+                  alert(`Failed to create resident: ${msg}`);
                 } finally {
                   setFormSubmitting(false);
                 }

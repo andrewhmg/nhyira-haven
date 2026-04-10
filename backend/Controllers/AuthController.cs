@@ -102,7 +102,7 @@ public class AuthController : ControllerBase
             await _userManager.AddToRoleAsync(user, assignedRole);
 
             // Generate token
-            var token = GenerateJwtToken(user);
+            var token = await GenerateJwtTokenAsync(user);
             var userDto = await GetUserDto(user);
 
             return Ok(new AuthResponseDto
@@ -182,7 +182,7 @@ public class AuthController : ControllerBase
             await _userManager.UpdateAsync(user);
 
             // Generate token
-            var token = GenerateJwtToken(user);
+            var token = await GenerateJwtTokenAsync(user);
             var userDto = await GetUserDto(user);
 
             return Ok(new AuthResponseDto
@@ -464,7 +464,7 @@ public class AuthController : ControllerBase
             await _userManager.UpdateAsync(user);
 
             // Generate full JWT
-            var token = GenerateJwtToken(user);
+            var token = await GenerateJwtTokenAsync(user);
             var userDto = await GetUserDto(user);
 
             return Ok(new AuthResponseDto
@@ -590,7 +590,7 @@ public class AuthController : ControllerBase
         return result.ToString().Trim();
     }
 
-    private string GenerateJwtToken(ApplicationUser user)
+    private async Task<string> GenerateJwtTokenAsync(ApplicationUser user)
     {
         var jwtKey = _configuration["Jwt:Key"] ?? "NhyiraHaven2026SecretKeyForDevelopmentOnly!";
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
@@ -601,15 +601,25 @@ public class AuthController : ControllerBase
             new(ClaimTypes.NameIdentifier, user.Id),
             new(ClaimTypes.Email, user.Email ?? ""),
             new(ClaimTypes.GivenName, user.FirstName ?? ""),
-            new(ClaimTypes.Surname, user.LastName ?? ""),
-            new("role", user.Role ?? "Donor")
+            new(ClaimTypes.Surname, user.LastName ?? "")
         };
 
-        // Add role claims
-        var roles = _userManager.GetRolesAsync(user).Result;
-        foreach (var role in roles)
+        var roles = await _userManager.GetRolesAsync(user);
+        if (roles.Count > 0)
         {
-            claims.Add(new Claim(ClaimTypes.Role, role));
+            foreach (var role in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(user.Role))
+        {
+            // DB profile says Admin/Staff/Donor but AspNetUserRoles may be missing (legacy / manual accounts)
+            claims.Add(new Claim(ClaimTypes.Role, user.Role));
+        }
+        else
+        {
+            claims.Add(new Claim(ClaimTypes.Role, "Donor"));
         }
 
         var token = new JwtSecurityToken(

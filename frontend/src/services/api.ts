@@ -27,7 +27,26 @@ async function fetchApi<T>(endpoint: string, options?: RequestInit): Promise<T> 
   });
 
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    let detail = '';
+    try {
+      const ct = response.headers.get('content-type');
+      if (ct?.includes('application/json')) {
+        const body: unknown = await response.json();
+        if (body && typeof body === 'object') {
+          const o = body as Record<string, unknown>;
+          if (typeof o.message === 'string') detail = o.message;
+          else if (typeof o.title === 'string') detail = o.title;
+          else if (o.errors != null) detail = JSON.stringify(o.errors);
+        }
+      } else {
+        const text = await response.text();
+        if (text) detail = text.slice(0, 500);
+      }
+    } catch {
+      /* ignore parse errors */
+    }
+    const suffix = detail ? `: ${detail}` : ` ${response.statusText}`;
+    throw new Error(`${response.status}${suffix}`);
   }
 
   if (response.status === 204 || response.headers.get('content-length') === '0') {
